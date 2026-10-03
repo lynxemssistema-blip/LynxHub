@@ -283,7 +283,7 @@ def run():
     server_address = ("", PORT)
     httpd = ThreadingHTTPServer(server_address, LynxGatewayHandler)
     print(f"🚀 Lynx AI Hub Gateway ativo em: http://localhost:{PORT}")
-    print(f"📡 Conectado ao Ollama na VPS: {VPS_OLLAMA}")
+    print(f"📡 Candidatos Ollama: {OLLAMA_CANDIDATES}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
