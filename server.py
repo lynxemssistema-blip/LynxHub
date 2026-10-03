@@ -25,10 +25,10 @@ if sys.platform.startswith("win"):
     except Exception:
         pass
 
-PORT = 8085
+PORT = int(os.environ.get("PORT", 8085))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KEYS_FILE = os.path.join(BASE_DIR, "keys.json")
-VPS_OLLAMA = "http://85.31.60.68:11434"
+VPS_OLLAMA = os.environ.get("OLLAMA_URL", "http://85.31.60.68:11434")
 
 # ==================== GERENCIADOR DE CHAVES ====================
 def load_keys():

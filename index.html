@@ -22,7 +22,7 @@
         </div>
         <div>
           <h1 class="brand-title">Lynx AI Hub</h1>
-          <span class="brand-subtitle">VPS EasyPanel &bull; 85.31.60.68</span>
+          <span class="brand-subtitle">lynxhub.lynxems.com.br &bull; EasyPanel VPS</span>
         </div>
       </div>
 
@@ -79,7 +79,7 @@
     <section class="tab-pane active" id="tab-dashboard">
       <div class="hero-card">
         <div class="hero-content">
-          <div class="badge-pill">VPS KVM 8 &bull; São Paulo (85.31.60.68)</div>
+          <div class="badge-pill">lynxhub.lynxems.com.br &bull; SSL Ativo &bull; São Paulo</div>
           <h2>Sua Central de Inteligência Artificial Privada</h2>
           <p>Conecte seus aplicativos móveis, plataformas web, bots de WhatsApp (Evolution API / n8n) e editores MCP diretamente à sua VPS sem custos por token e sem depender de APIs pagas de terceiros.</p>
           <div class="hero-stats">
@@ -117,10 +117,10 @@
             <div class="form-group">
               <label for="cfgVpsEndpoint">URL Base do Gateway / API da VPS</label>
               <div class="input-with-action">
-                <input type="text" id="cfgVpsEndpoint" value="http://85.31.60.68:11434" placeholder="Ex: http://85.31.60.68:11434 ou http://localhost:8085">
+                <input type="text" id="cfgVpsEndpoint" value="https://lynxhub.lynxems.com.br" placeholder="Ex: https://lynxhub.lynxems.com.br">
                 <button class="btn-sm btn-primary" id="btnTestConnection">Testar Conexão</button>
               </div>
-              <small class="helper-text">Seus apps podem conectar no IP da VPS ou no Gateway com API Key.</small>
+              <small class="helper-text">Seus aplicativos devem apontar para este domínio seguro com HTTPS.</small>
             </div>
 
             <div class="form-group">
@@ -291,7 +291,7 @@
                 <strong>Adicione um nó "HTTP Request":</strong>
                 <ul>
                   <li><strong>Method:</strong> <code>POST</code></li>
-                  <li><strong>URL:</strong> <code>http://85.31.60.68:11434/v1/chat/completions</code> (ou <code>http://localhost:8085/v1/chat/completions</code>)</li>
+                  <li><strong>URL:</strong> <code>https://lynxhub.lynxems.com.br/v1/chat/completions</code></li>
                   <li><strong>Headers:</strong> <code>Content-Type: application/json</code> e <code>Authorization: Bearer <span class="active-key-span">sua_chave</span></code></li>
                 </ul>
               </li>
@@ -338,7 +338,7 @@
               </li>
               <li>
                 <strong>Faça o disparo para a sua VPS:</strong>
-                <pre class="mini-code"><code>const res = await fetch("http://85.31.60.68:11434/v1/chat/completions", {
+                <pre class="mini-code"><code>const res = await fetch("https://lynxhub.lynxems.com.br/v1/chat/completions", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -380,9 +380,9 @@ return data.choices[0].message.content;</code></pre>
                 <strong>Permissão de Internet:</strong> No Android, garanta que o <code>AndroidManifest.xml</code> tenha <code>&lt;uses-permission android:name="android.permission.INTERNET"/&gt;</code>.
               </li>
               <li>
-                <strong>Chamada direta à VPS:</strong> Use a URL com HTTPS (configurada na aba Domínios do EasyPanel) ou com IP direto para desenvolvimento:
+                <strong>Chamada direta à VPS:</strong> Use a URL oficial com HTTPS:
                 <pre class="mini-code"><code>final response = await http.post(
-  Uri.parse('http://85.31.60.68:11434/v1/chat/completions'),
+  Uri.parse('https://lynxhub.lynxems.com.br/v1/chat/completions'),
   headers: {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer SUA_CHAVE_AQUI'
@@ -415,7 +415,7 @@ return data.choices[0].message.content;</code></pre>
 import OpenAI from "openai";
 
 const ai = new OpenAI({
-  baseURL: "http://85.31.60.68:11434/v1", // Aponta p/ sua VPS!
+  baseURL: "https://lynxhub.lynxems.com.br/v1", // Aponta p/ seu domínio com SSL!
   apiKey: "sua_chave_gerada"
 });
 

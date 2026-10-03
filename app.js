@@ -5,7 +5,14 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // ==================== STATE ====================
-  const defaultEndpoint = 'http://85.31.60.68:11434';
+  const currentOrigin = (window.location && window.location.origin && window.location.origin.startsWith('http')) 
+    ? window.location.origin 
+    : 'https://lynxhub.lynxems.com.br';
+    
+  const defaultEndpoint = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'https://lynxhub.lynxems.com.br'
+    : currentOrigin;
+
   const defaultKey = 'lynx_sk_live_vps_default_2026';
   const defaultModel = 'qwen2.5-coder:1.5b';
 
@@ -512,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lang = genLanguage ? genLanguage.value : 'curl';
     const model = genModel ? genModel.value : (state.selectedModel || 'qwen2.5-coder:1.5b');
     const stream = genStream ? genStream.value === 'true' : false;
-    const base = state.endpoint || 'http://85.31.60.68:11434';
+    const base = state.endpoint || 'https://lynxhub.lynxems.com.br';
     const key = state.apiKey || 'lynx_sk_live_vps_default_2026';
 
     let code = '';
