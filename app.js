@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Se ainda não encontrou (ex: browser puro), usa os modelos confirmados da VPS
     if (models.length === 0) {
-      models = ['qwen2.5-coder:1.5b', 'llama3:latest', 'codegemma:latest', 'gemma2:latest'];
+      models = ['qwen2.5-coder:1.5b', 'llama3:latest', 'llama3.2:3b', 'deepseek-r1:7b', 'codegemma:latest', 'gemma2:latest'];
     }
 
     state.installedModels = models;
@@ -342,20 +342,23 @@ document.addEventListener('DOMContentLoaded', () => {
     populateModelSelectors(models);
     renderModelsGrid(models);
     updateCodeSnippet();
+    if (typeof updateMcpConfigSnippet === 'function') updateMcpConfigSnippet();
+    if (typeof updateAgentPreset === 'function') updateAgentPreset();
   }
 
   function populateModelSelectors(models) {
-    const selectors = [cfgDefaultModel, genModel, playModelSelect];
+    const selectors = [cfgDefaultModel, genModel, playModelSelect, document.getElementById('mcpModelSelect')];
 
     selectors.forEach(sel => {
       if (!sel) return;
+      const prevVal = sel.value;
       sel.innerHTML = '';
 
       models.forEach(modelName => {
         const opt = document.createElement('option');
         opt.value = modelName;
         opt.textContent = `${modelName} (Pronto na VPS)`;
-        if (modelName === state.selectedModel) opt.selected = true;
+        if (modelName === prevVal || modelName === state.selectedModel) opt.selected = true;
         sel.appendChild(opt);
       });
     });
@@ -363,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Se o modelo salvo não estava na lista, seleciona o primeiro instalado
     if (!models.includes(state.selectedModel) && models.length > 0) {
       state.selectedModel = models[0];
-      selectors.forEach(sel => {
+      [cfgDefaultModel, genModel, playModelSelect].forEach(sel => {
         if (sel) sel.value = state.selectedModel;
       });
       localStorage.setItem('lynx_vps_model', state.selectedModel);
@@ -757,6 +760,58 @@ Future<String> enviarParaLynxAI(String perguntaUsuario) async {
     });
   }
 
+  // ==================== MCP DYNAMIC GENERATOR ====================
+  const mcpClientSelect = document.getElementById('mcpClientSelect');
+  const mcpModelSelect = document.getElementById('mcpModelSelect');
+  const mcpConfigLabel = document.getElementById('mcpConfigLabel');
+  const mcpWhereToPasteText = document.getElementById('mcpWhereToPasteText');
+
+  function updateMcpConfigSnippet() {
+    if (!mcpConfigBlock) return;
+    const client = mcpClientSelect ? mcpClientSelect.value : 'antigravity';
+    const model = mcpModelSelect ? mcpModelSelect.value : 'qwen2.5-coder:1.5b';
+
+    let label = '';
+    let instruction = '';
+    let jsonSnippet = '';
+
+    const scriptPath = "c:/Users/lynx/Documents/Ai Lynx na VPS Easy Panel/mcp_server.py";
+
+    switch (client) {
+      case 'antigravity':
+        label = 'mcp_config.json &bull; Google Antigravity IDE';
+        instruction = 'Cole este bloco dentro de <code>~/.gemini/config/mcp_config.json</code> no seu computador:';
+        jsonSnippet = `{\n  "mcpServers": {\n    "lynx-vps-ai": {\n      "command": "python",\n      "args": [\n        "${scriptPath}",\n        "--model=${model}"\n      ]\n    }\n  }\n}`;
+        break;
+
+      case 'claude':
+        label = 'claude_desktop_config.json &bull; Claude Desktop';
+        instruction = 'Cole em <code>%APPDATA%\\Claude\\claude_desktop_config.json</code> (Windows) ou <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (Mac):';
+        jsonSnippet = `{\n  "mcpServers": {\n    "lynx-vps-ai": {\n      "command": "python",\n      "args": [\n        "${scriptPath}",\n        "--model=${model}"\n      ]\n    }\n  }\n}`;
+        break;
+
+      case 'cursor':
+        label = '.cursor/mcp.json &bull; Cursor IDE';
+        instruction = 'Cole no arquivo <code>.cursor/mcp.json</code> da raiz do seu projeto ou em Configurações &gt; MCP no Cursor:';
+        jsonSnippet = `{\n  "mcpServers": {\n    "lynx-vps-ai": {\n      "command": "python",\n      "args": [\n        "${scriptPath}",\n        "--model=${model}"\n      ]\n    }\n  }\n}`;
+        break;
+
+      case 'windsurf':
+        label = 'mcp_config.json &bull; Windsurf / VS Code';
+        instruction = 'Cole no arquivo de configuração MCP do Windsurf / VS Code:';
+        jsonSnippet = `{\n  "mcpServers": {\n    "lynx-vps-ai": {\n      "command": "python",\n      "args": [\n        "${scriptPath}",\n        "--model=${model}"\n      ]\n    }\n  }\n}`;
+        break;
+    }
+
+    if (mcpConfigLabel) mcpConfigLabel.innerHTML = label;
+    if (mcpWhereToPasteText) mcpWhereToPasteText.innerHTML = instruction;
+    mcpConfigBlock.textContent = jsonSnippet;
+  }
+
+  if (mcpClientSelect) mcpClientSelect.addEventListener('change', updateMcpConfigSnippet);
+  if (mcpModelSelect) mcpModelSelect.addEventListener('change', updateMcpConfigSnippet);
+  updateMcpConfigSnippet();
+
   // Copiar Configuração MCP
   if (btnCopyMcpJson && mcpConfigBlock) {
     btnCopyMcpJson.addEventListener('click', () => {
@@ -770,6 +825,83 @@ Future<String> enviarParaLynxAI(String perguntaUsuario) async {
         }, 2000);
       });
     });
+  }
+
+  // ==================== AGENTES ESPECIALIZADOS ====================
+  const playAgentSelect = document.getElementById('playAgentSelect');
+  const activeAgentTitle = document.getElementById('activeAgentTitle');
+  const activeAgentModelBadge = document.getElementById('activeAgentModelBadge');
+  const agentGreetingText = document.getElementById('agentGreetingText');
+
+  const agentPresets = {
+    dev: {
+      title: "👨‍💻 Lynx Dev",
+      model: "qwen2.5-coder:1.5b",
+      badge: "qwen2.5-coder:1.5b • Modo Código",
+      temp: 0.2,
+      systemPrompt: "Você é o Lynx Dev, arquiteto de software e especialista em código limpo, TypeScript, JavaScript, Python e refatoração. Seja direto e forneça código funcional, seguro e sem comentários redundantes.",
+      greeting: "Olá! Sou o <strong>Lynx Dev</strong>, assistente de programação da sua VPS (<strong>85.31.60.68</strong>). Como posso te ajudar com código, arquitetura ou refatoração hoje?"
+    },
+    whatsapp: {
+      title: "💬 Lynx WhatsApp",
+      model: "llama3.2:3b",
+      badge: "llama3.2:3b • Atendimento WhatsApp",
+      temp: 0.7,
+      systemPrompt: "Você é a Lynx, assistente de vendas e atendimento humanizado no WhatsApp. Responda sempre em português brasileiro de forma acolhedora, concisa e direta (máximo de 2 a 3 frases por mensagem).",
+      greeting: "Olá! Sou a <strong>Lynx WhatsApp</strong>, assistente de atendimento e vendas. Como posso ajudar seu cliente hoje?"
+    },
+    analyst: {
+      title: "🧠 Lynx Raciocínio",
+      model: "deepseek-r1:7b",
+      badge: "deepseek-r1:7b • Raciocínio Profundo",
+      temp: 0.4,
+      systemPrompt: "Você é um especialista em raciocínio analítico, resolução de problemas e tomada de decisões lógicas. Analise detalhadamente premissas e apresente conclusões estruturadas passo a passo.",
+      greeting: "Olá! Sou o <strong>Lynx Raciocínio</strong>. Envie-me um problema complexo, decisão ou análise para pensarmos juntos passo a passo."
+    },
+    json: {
+      title: "📄 Lynx Extrator JSON",
+      model: "qwen2.5-coder:1.5b",
+      badge: "qwen2.5-coder:1.5b • JSON Estrito",
+      temp: 0.1,
+      systemPrompt: "Você é um motor de extração de dados estrito. Sua única saída DEVE SER UM OBJETO JSON VÁLIDO sem markdown, sem explicações, iniciando com { e terminando com }.",
+      greeting: "Olá! Sou o <strong>Extrator JSON</strong>. Envie qualquer texto desestruturado para que eu devolva um JSON puro para suas APIs."
+    },
+    custom: {
+      title: "✏️ Agente Personalizado",
+      model: "qwen2.5-coder:1.5b",
+      badge: "Modo Personalizado",
+      temp: 0.7,
+      systemPrompt: "",
+      greeting: "Olá! O modo <strong>Agente Personalizado</strong> está ativo. Digite sua mensagem de teste abaixo."
+    }
+  };
+
+  function updateAgentPreset() {
+    if (!playAgentSelect) return;
+    const key = playAgentSelect.value;
+    const preset = agentPresets[key] || agentPresets.dev;
+
+    if (activeAgentTitle) activeAgentTitle.textContent = preset.title;
+    if (activeAgentModelBadge) activeAgentModelBadge.textContent = preset.badge;
+    if (agentGreetingText) agentGreetingText.innerHTML = preset.greeting;
+    if (playSystemPrompt) playSystemPrompt.value = preset.systemPrompt;
+    if (playTemperature) {
+      playTemperature.value = preset.temp;
+      if (tempVal) tempVal.textContent = preset.temp;
+    }
+
+    // Se o modelo do preset estiver na lista de modelos instalados, seleciona-o
+    if (playModelSelect) {
+      const hasOption = Array.from(playModelSelect.options).some(o => o.value === preset.model);
+      if (hasOption) {
+        playModelSelect.value = preset.model;
+      }
+    }
+  }
+
+  if (playAgentSelect) {
+    playAgentSelect.addEventListener('change', updateAgentPreset);
+    updateAgentPreset();
   }
 
   // Copiar Prompts
@@ -853,10 +985,8 @@ Future<String> enviarParaLynxAI(String perguntaUsuario) async {
     }
     messages.push({ role: 'user', content: text });
 
-    // Rota através do Gateway local autenticado (com fallback para VPS direto)
-    const targetUrl = window.location.port === '8085' 
-      ? '/v1/chat/completions' 
-      : `${state.endpoint.replace(/\/+$/, '')}/v1/chat/completions`;
+    // Rota através do Gateway com URL relativa para garantir HTTPS e evitar Mixed Content
+    const targetUrl = '/v1/chat/completions';
 
     try {
       const response = await fetch(targetUrl, {

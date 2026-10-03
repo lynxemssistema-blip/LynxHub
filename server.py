@@ -25,10 +25,35 @@ if sys.platform.startswith("win"):
     except Exception:
         pass
 
-PORT = int(os.environ.get("PORT", 8085))
+PORT = 8085
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KEYS_FILE = os.path.join(BASE_DIR, "keys.json")
-VPS_OLLAMA = os.environ.get("OLLAMA_URL", "http://85.31.60.68:11434")
+
+# Lista de candidatos para alcançar o Ollama (seja de fora, de dentro do Docker ou na rede EasyPanel)
+OLLAMA_CANDIDATES = [
+    os.environ.get("OLLAMA_URL", "").strip(),
+    "http://85.31.60.68:11434",
+    "http://172.17.0.1:11434",
+    "http://host.docker.internal:11434",
+    "http://ollama:11434"
+]
+OLLAMA_CANDIDATES = [c for c in OLLAMA_CANDIDATES if c]
+
+def proxy_to_ollama(path, method="GET", data=None, headers=None, timeout=120):
+    """Tenta conectar ao Ollama em múltiplos candidatos até encontrar um ativo."""
+    last_err = None
+    for base in OLLAMA_CANDIDATES:
+        url = f"{base}{path}"
+        try:
+            req = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
+            return urllib.request.urlopen(req, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            # Se for erro HTTP (ex: 404 modelo não encontrado), o Ollama foi alcançado com sucesso!
+            raise e
+        except Exception as e:
+            last_err = e
+            continue
+    raise Exception(f"Nenhum endpoint do Ollama respondeu nos candidatos: {OLLAMA_CANDIDATES}. Último erro: {last_err}")
 
 # ==================== GERENCIADOR DE CHAVES ====================
 def load_keys():
@@ -99,7 +124,7 @@ class LynxGatewayHandler(BaseHTTPRequestHandler):
         # 2. API: Modelos da VPS (/v1/models ou /api/tags)
         if parsed_path in ["/v1/models", "/api/tags"]:
             try:
-                with urllib.request.urlopen(f"{VPS_OLLAMA}/api/tags", timeout=10) as resp:
+                with proxy_to_ollama("/api/tags", timeout=10) as resp:
                     data = resp.read()
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
@@ -214,16 +239,9 @@ class LynxGatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(err_resp).encode("utf-8"))
                 return
 
-            # Encaminhar para o Ollama na VPS
-            vps_target = f"{VPS_OLLAMA}{parsed_path}"
-            req = urllib.request.Request(
-                vps_target,
-                data=body,
-                headers={"Content-Type": "application/json"}
-            )
-
+            # Encaminhar para o Ollama na VPS via proxy_to_ollama resiliente
             try:
-                with urllib.request.urlopen(req, timeout=120) as resp:
+                with proxy_to_ollama(parsed_path, method="POST", data=body, headers={"Content-Type": "application/json"}, timeout=120) as resp:
                     self.send_response(resp.status)
                     for header, val in resp.getheaders():
                         if header.lower() not in ["content-length", "transfer-encoding"]:

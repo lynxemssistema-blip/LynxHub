@@ -5,6 +5,7 @@ Permite conectar ferramentas como Cursor, Claude Desktop, Antigravity IDE
 e outros clientes MCP diretamente aos modelos de IA da sua VPS (85.31.60.68).
 """
 
+import os
 import sys
 import json
 import urllib.request
@@ -18,33 +19,65 @@ if sys.platform.startswith("win"):
     except Exception:
         pass
 
-VPS_OLLAMA_URL = "http://85.31.60.68:11434"
+# URL do servidor: pode ser o domínio oficial com SSL ou a VPS direta
+VPS_HUB_URL = os.environ.get("LYNX_HUB_URL", "https://lynxhub.lynxems.com.br")
+VPS_OLLAMA_URL = os.environ.get("VPS_OLLAMA_URL", "http://85.31.60.68:11434")
+DEFAULT_MODEL = os.environ.get("LYNX_MODEL", "qwen2.5-coder:1.5b")
 
-def query_ollama(model, prompt, system_prompt=""):
-    """Envia uma mensagem para o Ollama na VPS e retorna o texto gerado."""
+# Permite passar --model via argumento de linha de comando
+for i, arg in enumerate(sys.argv):
+    if arg == "--model" and i + 1 < len(sys.argv):
+        DEFAULT_MODEL = sys.argv[i + 1]
+    elif arg.startswith("--model="):
+        DEFAULT_MODEL = arg.split("=", 1)[1]
+
+def query_ollama(model=None, prompt="", system_prompt=""):
+    """Envia uma mensagem para a IA e retorna o texto gerado."""
+    chosen_model = model or DEFAULT_MODEL
     messages = []
     if system_prompt:
         messages.append({"role": "system", "content": system_prompt})
     messages.append({"role": "user", "content": prompt})
 
     payload = {
-        "model": model,
+        "model": chosen_model,
         "messages": messages,
         "stream": False
     }
 
-    req = urllib.request.Request(
+    payload_bytes = json.dumps(payload).encode("utf-8")
+    
+    # 1. Tenta direto na VPS
+    req_vps = urllib.request.Request(
         f"{VPS_OLLAMA_URL}/api/chat",
-        data=json.dumps(payload).encode("utf-8"),
+        data=payload_bytes,
         headers={"Content-Type": "application/json"}
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req_vps, timeout=60) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("message", {}).get("content", "")
-    except Exception as e:
-        return f"Erro ao comunicar com a VPS Lynx AI ({VPS_OLLAMA_URL}): {str(e)}"
+    except Exception as e_vps:
+        # 2. Fallback: tenta pelo Gateway HTTPS do domínio
+        try:
+            import ssl
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            req_hub = urllib.request.Request(
+                f"{VPS_HUB_URL}/v1/chat/completions",
+                data=payload_bytes,
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req_hub, context=ctx, timeout=60) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                choices = data.get("choices", [])
+                if choices:
+                    return choices[0].get("message", {}).get("content", "")
+        except Exception:
+            pass
+        return f"Erro ao comunicar com a VPS Lynx AI: {str(e_vps)}"
 
 def list_installed_models():
     """Retorna os modelos instalados no Ollama da VPS."""

@@ -445,26 +445,39 @@ const completion = await ai.chat.completions.create({
             <span class="tag-status">Stdio JSON-RPC</span>
           </div>
           <div class="card-body">
-            <p class="text-dim-sm">Cole o bloco abaixo no arquivo de configuração do seu cliente MCP (por exemplo: <code>claude_desktop_config.json</code> ou nas configurações de MCP do Cursor / Antigravity):</p>
+            <div class="form-row mb-1">
+              <div class="form-group flex-1">
+                <label for="mcpClientSelect">Onde você vai aplicar o MCP?</label>
+                <select id="mcpClientSelect">
+                  <option value="antigravity">Google Antigravity IDE (~/.gemini/config/mcp_config.json)</option>
+                  <option value="claude">Claude Desktop (claude_desktop_config.json)</option>
+                  <option value="cursor">Cursor IDE (.cursor/mcp.json ou Settings)</option>
+                  <option value="windsurf">Windsurf / VS Code (mcpServers)</option>
+                </select>
+              </div>
+
+              <div class="form-group flex-1">
+                <label for="mcpModelSelect">Qual Inteligência (Modelo) padrão usar?</label>
+                <select id="mcpModelSelect">
+                  <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b (Super Rápido & Código)</option>
+                  <option value="llama3:latest">llama3:latest (Raciocínio & Geral 8B)</option>
+                  <option value="codegemma:latest">codegemma:latest (Especialista Google 9B)</option>
+                  <option value="gemma2:latest">gemma2:latest (Google DeepMind 9B)</option>
+                </select>
+              </div>
+            </div>
+
+            <p class="text-dim-sm" id="mcpWhereToPasteText">Cole o bloco JSON abaixo no arquivo de configuração do seu cliente MCP:</p>
             
             <div class="code-box-wrapper mt-1">
               <div class="code-header">
-                <span class="code-title">claude_desktop_config.json &bull; Configuração MCP</span>
+                <span class="code-title" id="mcpConfigLabel">mcp_config.json &bull; Google Antigravity IDE</span>
                 <button class="btn-copy" id="btnCopyMcpJson">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                   Copiar Configuração JSON
                 </button>
               </div>
-              <pre class="code-content"><code id="mcpConfigBlock">{
-  "mcpServers": {
-    "lynx-vps-ai": {
-      "command": "python",
-      "args": [
-        "c:/Users/lynx/Documents/Ai Lynx na VPS Easy Panel/mcp_server.py"
-      ]
-    }
-  }
-}</code></pre>
+              <pre class="code-content"><code id="mcpConfigBlock">Carregando configuração...</code></pre>
             </div>
 
             <div class="mcp-tools-list">
@@ -570,11 +583,23 @@ const completion = await ai.chat.completions.create({
         <div class="playground-sidebar">
           <div class="panel-card">
             <div class="card-header">
-              <h3>Parâmetros do Teste</h3>
+              <h3>Agente & Parâmetros</h3>
             </div>
             <div class="card-body">
               <div class="form-group">
-                <label for="playModelSelect">Modelo a Testar</label>
+                <label for="playAgentSelect">Escolha o Agente da Conversa</label>
+                <select id="playAgentSelect">
+                  <option value="dev">👨‍💻 Lynx Dev (Programação & Código)</option>
+                  <option value="whatsapp">💬 Lynx WhatsApp (Atendimento & Vendas)</option>
+                  <option value="analyst">🧠 Lynx Raciocínio (Decisões & Lógica)</option>
+                  <option value="json">📄 Lynx Extrator JSON (Dados para APIs)</option>
+                  <option value="custom">✏️ Agente Personalizado (Manual)</option>
+                </select>
+                <small class="helper-text" id="agentBadgeHelp">Ajusta o modelo, criatividade e prompt ideais.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="playModelSelect">Modelo de IA da VPS</label>
                 <select id="playModelSelect">
                   <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b (Rápido / Código)</option>
                   <option value="llama3:latest">llama3:latest (Geral / 8B)</option>
@@ -585,8 +610,8 @@ const completion = await ai.chat.completions.create({
               </div>
 
               <div class="form-group">
-                <label for="playTemperature">Temperatura (Criatividade): <span id="tempVal">0.7</span></label>
-                <input type="range" id="playTemperature" min="0" max="1" step="0.1" value="0.7">
+                <label for="playTemperature">Temperatura (Criatividade): <span id="tempVal">0.3</span></label>
+                <input type="range" id="playTemperature" min="0" max="1" step="0.1" value="0.3">
                 <div class="range-labels">
                   <span>0 (Exato)</span>
                   <span>1 (Criativo)</span>
@@ -594,8 +619,8 @@ const completion = await ai.chat.completions.create({
               </div>
 
               <div class="form-group">
-                <label for="playSystemPrompt">Prompt de Sistema (Opcional)</label>
-                <textarea id="playSystemPrompt" rows="3" placeholder="Ex: Você é a Lynx, assistente de vendas da empresa..."></textarea>
+                <label for="playSystemPrompt">Prompt de Personalidade do Agente</label>
+                <textarea id="playSystemPrompt" rows="4" placeholder="Instruções que definem a personalidade e regras do agente..."></textarea>
               </div>
 
               <div class="form-group">
@@ -611,11 +636,15 @@ const completion = await ai.chat.completions.create({
         <!-- Chat Output Column -->
         <div class="playground-main">
           <div class="chat-container">
+            <div class="chat-agent-bar">
+              <span class="chat-agent-title" id="activeAgentTitle">👨‍💻 Lynx Dev</span>
+              <span class="chat-agent-badge" id="activeAgentModelBadge">qwen2.5-coder:1.5b &bull; Modo Código</span>
+            </div>
             <div class="chat-messages" id="chatMessages">
               <div class="message assistant">
                 <div class="msg-avatar">AI</div>
                 <div class="msg-content">
-                  <p>Olá! Este é o testador direto da sua VPS (<strong>85.31.60.68</strong>). Selecione o modelo acima (ex: <code>qwen2.5-coder:1.5b</code> ou <code>llama3:latest</code>) e digite uma mensagem para testar.</p>
+                  <p id="agentGreetingText">Olá! Sou o <strong>Lynx Dev</strong>, assistente de programação da sua VPS (<strong>85.31.60.68</strong>). Como posso te ajudar com código, arquitetura ou refatoração hoje?</p>
                 </div>
               </div>
             </div>
