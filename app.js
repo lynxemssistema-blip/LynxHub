@@ -22,8 +22,31 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedModel: localStorage.getItem('lynx_vps_model') || defaultModel,
     installedModels: [],
     apiKeys: [],
-    isOnline: false
+    isOnline: false,
+    sessionToken: localStorage.getItem('lynx_session_token') || '',
+    userEmail: 'edsonmanoel2012@gmail.com'
   };
+
+  // ==================== AUTH ELEMENTS ====================
+  const authOverlay = document.getElementById('authOverlay');
+  const authLoginForm = document.getElementById('authLoginForm');
+  const authEmail = document.getElementById('authEmail');
+  const authPassword = document.getElementById('authPassword');
+  const authAlert = document.getElementById('authAlert');
+  const btnAuthSubmit = document.getElementById('btnAuthSubmit');
+  const btnAuthText = document.getElementById('btnAuthText');
+  const userProfileBadge = document.getElementById('userProfileBadge');
+  const userEmailText = document.getElementById('userEmailText');
+  const btnLogout = document.getElementById('btnLogout');
+
+  function getAuthHeaders() {
+    const token = localStorage.getItem('lynx_session_token') || '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
 
   // ==================== ELEMENTS ====================
   // Tabs
@@ -94,6 +117,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==================== INITIAL LOAD ====================
   if (cfgVpsEndpoint) cfgVpsEndpoint.value = state.endpoint;
   
+  // 0. Verifica Autenticação
+  checkAuth();
+
   // 1. Carrega Chaves de API
   loadApiKeys();
 
@@ -103,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==================== API KEYS MANAGEMENT ====================
   async function loadApiKeys() {
     try {
-      const res = await fetch('/api/keys');
+      const res = await fetch('/api/keys', { headers: getAuthHeaders() });
       if (res.ok) {
         state.apiKeys = await res.json();
       } else {
@@ -203,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           await fetch('/api/keys/revoke', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ id })
           });
         } catch (e) {}
@@ -260,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch('/api/keys', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ name, app })
         });
 
@@ -1081,6 +1107,101 @@ Future<String> enviarParaLynxAI(String perguntaUsuario) async {
         e.preventDefault();
         handleSend();
       }
+    });
+  }
+
+  // ==================== CAMADA DE SEGURANÇA E LOGIN ====================
+  async function checkAuth() {
+    const token = localStorage.getItem('lynx_session_token');
+    if (!token) {
+      showAuthModal();
+      return;
+    }
+    try {
+      const res = await fetch('/api/auth/verify', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        hideAuthModal(data.email || 'edsonmanoel2012@gmail.com');
+      } else {
+        showAuthModal();
+      }
+    } catch (e) {
+      showAuthModal();
+    }
+  }
+
+  function showAuthModal() {
+    if (authOverlay) authOverlay.classList.remove('hidden');
+    if (userProfileBadge) userProfileBadge.style.display = 'none';
+  }
+
+  function hideAuthModal(email) {
+    if (authOverlay) authOverlay.classList.add('hidden');
+    if (userProfileBadge) {
+      userProfileBadge.style.display = 'flex';
+      if (userEmailText) userEmailText.textContent = email;
+    }
+  }
+
+  if (authLoginForm) {
+    authLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (authAlert) authAlert.style.display = 'none';
+
+      const email = authEmail.value.trim();
+      const password = authPassword.value.trim();
+
+      if (btnAuthSubmit) btnAuthSubmit.disabled = true;
+      if (btnAuthText) btnAuthText.textContent = 'Autenticando...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          localStorage.setItem('lynx_session_token', data.token);
+          hideAuthModal(data.email || email);
+          loadApiKeys();
+        } else {
+          if (authAlert) {
+            authAlert.textContent = data.error || 'Credenciais inválidas. Verifique seu e-mail e senha.';
+            authAlert.style.display = 'block';
+          }
+        }
+      } catch (err) {
+        if (authAlert) {
+          authAlert.textContent = 'Erro de comunicação com o servidor de autenticação.';
+          authAlert.style.display = 'block';
+        }
+      } finally {
+        if (btnAuthSubmit) btnAuthSubmit.disabled = false;
+        if (btnAuthText) btnAuthText.textContent = 'Entrar no Painel Lynx';
+      }
+    });
+  }
+
+  if (btnLogout) {
+    btnLogout.addEventListener('click', async () => {
+      const token = localStorage.getItem('lynx_session_token');
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+      } catch (e) {}
+
+      localStorage.removeItem('lynx_session_token');
+      showAuthModal();
+      if (authEmail) authEmail.value = '';
+      if (authPassword) authPassword.value = '';
     });
   }
 });

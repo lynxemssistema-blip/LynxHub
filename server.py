@@ -55,6 +55,50 @@ def proxy_to_ollama(path, method="GET", data=None, headers=None, timeout=120):
             continue
     raise Exception(f"Nenhum endpoint do Ollama respondeu nos candidatos: {OLLAMA_CANDIDATES}. Último erro: {last_err}")
 
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "edsonmanoel2012@gmail.com")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "10207597Rdv*")
+SESSIONS_FILE = os.path.join(BASE_DIR, "sessions.json")
+
+def load_sessions():
+    if not os.path.exists(SESSIONS_FILE):
+        return {}
+    try:
+        with open(SESSIONS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_sessions(sessions_dict):
+    try:
+        with open(SESSIONS_FILE, "w", encoding="utf-8") as f:
+            json.dump(sessions_dict, f, indent=2)
+    except Exception:
+        pass
+
+def create_session(email):
+    sessions = load_sessions()
+    token = f"lynx_sess_{secrets.token_hex(20)}"
+    sessions[token] = {
+        "email": email,
+        "created_at": datetime.datetime.now().isoformat()
+    }
+    save_sessions(sessions)
+    return token
+
+def is_session_valid(token):
+    if not token:
+        return False
+    sessions = load_sessions()
+    return token in sessions
+
+def remove_session(token):
+    if not token:
+        return
+    sessions = load_sessions()
+    if token in sessions:
+        del sessions[token]
+        save_sessions(sessions)
+
 # ==================== GERENCIADOR DE CHAVES ====================
 def load_keys():
     if not os.path.exists(KEYS_FILE):
@@ -108,11 +152,58 @@ class LynxGatewayHandler(BaseHTTPRequestHandler):
         self.send_cors_headers()
         self.end_headers()
 
+    def get_session_token(self):
+        auth_header = self.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.replace("Bearer ", "").strip()
+            if token.startswith("lynx_sess_"):
+                return token
+        cookies = self.headers.get("Cookie", "")
+        for part in cookies.split(";"):
+            part = part.strip()
+            if part.startswith("lynx_session="):
+                return part.split("=", 1)[1].strip()
+        return None
+
+    def is_request_authenticated(self):
+        token = self.get_session_token()
+        if is_session_valid(token):
+            return True
+        auth_header = self.headers.get("Authorization", "").replace("Bearer ", "").strip()
+        if is_key_valid(auth_header):
+            return True
+        return False
+
     def do_GET(self):
         parsed_path = self.path.split("?")[0]
 
-        # 1. API: Listar Chaves de API
+        # 0. API: Checar Autenticação de Sessão
+        if parsed_path == "/api/auth/verify":
+            token = self.get_session_token()
+            if is_session_valid(token):
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"authenticated": True, "email": ADMIN_EMAIL}).encode("utf-8"))
+            else:
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"authenticated": False}).encode("utf-8"))
+            return
+
+        # 1. API: Listar Chaves de API (Exige Autenticação)
         if parsed_path == "/api/keys":
+            if not self.is_request_authenticated():
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Acesso restrito. Faça login com o usuário administrador."}).encode("utf-8"))
+                return
+
             keys = load_keys()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -167,8 +258,66 @@ class LynxGatewayHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length) if content_length > 0 else b""
 
-        # 1. API: Criar Nova Chave de API
+        # 0. API: Login de Administrador
+        if parsed_path == "/api/auth/login":
+            try:
+                data = json.loads(body.decode("utf-8")) if body else {}
+            except Exception:
+                data = {}
+
+            email = str(data.get("email", "")).strip().lower()
+            password = str(data.get("password", "")).strip()
+
+            if email == ADMIN_EMAIL.lower() and password == ADMIN_PASSWORD:
+                token = create_session(ADMIN_EMAIL)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Set-Cookie", f"lynx_session={token}; Path=/; Max-Age=2592000; SameSite=Lax")
+                self.send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "token": token,
+                    "email": ADMIN_EMAIL
+                }).encode("utf-8"))
+                return
+            else:
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "error": "Usuário ou senha incorretos."
+                }).encode("utf-8"))
+                return
+
+        # 0.1 API: Logout de Administrador
+        if parsed_path == "/api/auth/logout":
+            try:
+                data = json.loads(body.decode("utf-8")) if body else {}
+            except Exception:
+                data = {}
+
+            token = data.get("token") or self.get_session_token()
+            remove_session(token)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Set-Cookie", "lynx_session=; Path=/; Max-Age=0; SameSite=Lax")
+            self.send_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+            return
+
+        # 1. API: Criar Nova Chave de API (Exige Autenticação)
         if parsed_path == "/api/keys":
+            if not self.is_request_authenticated():
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Acesso restrito. Faça login primeiro."}).encode("utf-8"))
+                return
+
             try:
                 data = json.loads(body.decode("utf-8")) if body else {}
             except Exception:
@@ -196,8 +345,16 @@ class LynxGatewayHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(new_key).encode("utf-8"))
             return
 
-        # 2. API: Revogar / Deletar Chave de API
+        # 2. API: Revogar / Deletar Chave de API (Exige Autenticação)
         if parsed_path == "/api/keys/revoke":
+            if not self.is_request_authenticated():
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Acesso restrito. Faça login primeiro."}).encode("utf-8"))
+                return
+
             try:
                 data = json.loads(body.decode("utf-8"))
                 key_id = data.get("id")
