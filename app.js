@@ -710,7 +710,7 @@ Future<String> enviarParaLynxAI(String perguntaUsuario) async {
         code = `// Configuração do Nó "HTTP Request" no seu n8n existente na VPS (n8n_evo):
 {
   "method": "POST",
-  "url": "http://85.31.60.68:11434/v1/chat/completions",
+  "url": "${base}/v1/chat/completions",
   "sendHeaders": true,
   "headerParameters": {
     "parameters": [
