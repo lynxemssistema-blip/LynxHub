@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Build artifacts & pacotes zip
+dist/
+*.zip
+
+# Logs
+*.log
+
+# IDE & Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo

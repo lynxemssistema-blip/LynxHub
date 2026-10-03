@@ -1,0 +1,18 @@
+[
+  {
+    "id": "key_default_lynx",
+    "name": "Chave Principal Lynx (Padrao)",
+    "key": "lynx_sk_live_vps_default_2026",
+    "app": "Todos os Aplicativos",
+    "created_at": "03/10/2026 13:59",
+    "status": "active"
+  },
+  {
+    "id": "key_6608fdd109e8",
+    "name": "App Mobile FlutterBot Atendimento WhatsApp",
+    "key": "lynx_sk_live_frJ5ILUPbRoGj5By_oZxLM9LxKWH4Pja",
+    "app": "WhatsApp Bot (n8n / Evolution)",
+    "created_at": "03/10/2026 14:05",
+    "status": "active"
+  }
+]

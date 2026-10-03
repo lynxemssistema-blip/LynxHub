@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lynx AI Hub | Central de Gerenciamento & Integração da VPS</title>
+  <meta name="description" content="Painel de controle, gerador de chaves de API, integração MCP e guia de implementação para IA na sua VPS EasyPanel.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Lynx AI Hub</h1>
+          <span class="brand-subtitle">VPS EasyPanel &bull; 85.31.60.68</span>
+        </div>
+      </div>
+
+      <div class="vps-badge" id="vpsConnectionBadge">
+        <span class="status-indicator pinging"></span>
+        <span class="status-text" id="connectionStatusText">Conectando à VPS...</span>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="tab-dashboard" id="btnTabDashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Visão Geral
+        </button>
+        <button class="tab-btn" data-tab="tab-apikeys" id="btnTabApiKeys">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          Gerar API Keys
+        </button>
+        <button class="tab-btn" data-tab="tab-how-to-apply" id="btnTabHowToApply">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Como Aplicar nos Apps
+        </button>
+        <button class="tab-btn" data-tab="tab-generator" id="btnTabGenerator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Gerador de Códigos
+        </button>
+        <button class="tab-btn" data-tab="tab-mcp" id="btnTabMcp">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+          Conexão MCP
+        </button>
+        <button class="tab-btn" data-tab="tab-playground" id="btnTabPlayground">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Playground / Testador
+        </button>
+        <button class="tab-btn" data-tab="tab-models" id="btnTabModels">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Modelos na VPS
+        </button>
+        <button class="tab-btn" data-tab="tab-prompts" id="btnTabPrompts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Prompts Prontos
+        </button>
+        <button class="tab-btn" data-tab="tab-easypanel" id="btnTabEasypanel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Config EasyPanel
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-container">
+
+    <!-- ==================== TAB 1: DASHBOARD ==================== -->
+    <section class="tab-pane active" id="tab-dashboard">
+      <div class="hero-card">
+        <div class="hero-content">
+          <div class="badge-pill">VPS KVM 8 &bull; São Paulo (85.31.60.68)</div>
+          <h2>Sua Central de Inteligência Artificial Privada</h2>
+          <p>Conecte seus aplicativos móveis, plataformas web, bots de WhatsApp (Evolution API / n8n) e editores MCP diretamente à sua VPS sem custos por token e sem depender de APIs pagas de terceiros.</p>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-number">32 GB</span>
+              <span class="stat-label">RAM Total (24 GB livres)</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">8 Cores</span>
+              <span class="stat-label">Processamento vCPU</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">400 GB</span>
+              <span class="stat-label">Armazenamento NVMe</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">R$ 0,00</span>
+              <span class="stat-label">Custo por Requisição</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Quick Configuration Card -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Conexão com a VPS
+            </h3>
+            <span class="tag-status" id="dashStatusTag">Sincronizado</span>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="cfgVpsEndpoint">URL Base do Gateway / API da VPS</label>
+              <div class="input-with-action">
+                <input type="text" id="cfgVpsEndpoint" value="http://85.31.60.68:11434" placeholder="Ex: http://85.31.60.68:11434 ou http://localhost:8085">
+                <button class="btn-sm btn-primary" id="btnTestConnection">Testar Conexão</button>
+              </div>
+              <small class="helper-text">Seus apps podem conectar no IP da VPS ou no Gateway com API Key.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="cfgActiveApiKey">Chave de API Ativa Selecionada</label>
+              <select id="cfgActiveApiKey">
+                <option value="lynx_sk_live_vps_default_2026">Carregando chaves...</option>
+              </select>
+              <small class="helper-text">Você pode criar novas chaves na aba <strong>"Gerar API Keys"</strong>.</small>
+            </div>
+
+            <div class="form-group">
+              <label for="cfgDefaultModel">Modelo Instalado Padrão</label>
+              <select id="cfgDefaultModel">
+                <option value="qwen2.5-coder:1.5b">Detectando modelos instalados na VPS...</option>
+              </select>
+            </div>
+
+            <button class="btn btn-secondary w-100" id="btnSaveConfig">
+              Salvar Preferências
+            </button>
+          </div>
+        </div>
+
+        <!-- System Architecture Card -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              Estrutura dos Seus Serviços
+            </h3>
+            <span class="tag-badge">Projeto: lynx_ai</span>
+          </div>
+          <div class="card-body">
+            <div class="service-item">
+              <div class="service-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </div>
+              <div class="service-details">
+                <div class="service-name">ollama (Serviço VPS)</div>
+                <div class="service-desc">Motor de IA local na porta 11434. Executa os modelos com a API padrão da OpenAI (`/v1/chat/completions`).</div>
+              </div>
+              <span class="badge-success">Online (4 Modelos)</span>
+            </div>
+
+            <div class="service-item">
+              <div class="service-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+              </div>
+              <div class="service-details">
+                <div class="service-name">Lynx API Gateway & Keys</div>
+                <div class="service-desc">Camada de autenticação com validação de Bearer Token e controle de acesso para seus apps.</div>
+              </div>
+              <span class="badge-primary">Ativo</span>
+            </div>
+
+            <div class="service-item">
+              <div class="service-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+              </div>
+              <div class="service-details">
+                <div class="service-name">Servidor MCP Stdio</div>
+                <div class="service-desc">Permite que Cursor, Claude Desktop e Antigravity usem sua VPS como ferramenta de IA.</div>
+              </div>
+              <span class="badge-primary">Pronto</span>
+            </div>
+
+            <div class="alert-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <div>
+                <strong>Garantia de Isolamento:</strong> Seus projetos <code>n8n_evo</code>, <code>flr</code>, <code>horeb</code>, <code>izaque</code> e <code>sinco</code> continuam 100% preservados e funcionando normalmente.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: GERAR API KEYS ==================== -->
+    <section class="tab-pane" id="tab-apikeys">
+      <div class="section-intro">
+        <h2>Gerenciador de Chaves de API para Seus Aplicativos</h2>
+        <p>Gere chaves seguras (Bearer Token) para conectar facilmente seus aplicativos web, mobile, bots de WhatsApp ou sistemas externos sem expor a sua VPS aberta para a internet.</p>
+      </div>
+
+      <div class="apikeys-grid">
+        <!-- Card: Criar Nova Chave -->
+        <div class="panel-card">
+          <div class="card-header">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Gerar Nova API Key
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="newKeyName">Nome / Identificação da Chave</label>
+              <input type="text" id="newKeyName" placeholder="Ex: Chave Bot WhatsApp de Vendas" value="App Mobile Flutter">
+            </div>
+
+            <div class="form-group">
+              <label for="newKeyApp">Aplicativo ou Destino</label>
+              <select id="newKeyApp">
+                <option value="WhatsApp Bot (n8n / Evolution)">WhatsApp Bot (n8n / Evolution API)</option>
+                <option value="Aplicativo Mobile (Flutter / React Native)">Aplicativo Mobile (Flutter / React Native)</option>
+                <option value="Sistema Web (Frontend / SaaS)">Sistema Web (Frontend / SaaS)</option>
+                <option value="Backend / Microserviço">Backend / Microserviço (Node, Python, PHP)</option>
+                <option value="Automação / Scripts">Automação / Scripts</option>
+              </select>
+            </div>
+
+            <button class="btn btn-primary w-100" id="btnCreateApiKey">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+              Criar Nova Chave de API
+            </button>
+          </div>
+        </div>
+
+        <!-- Card: Chaves Ativas Registradas -->
+        <div class="panel-card flex-2">
+          <div class="card-header">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Suas Chaves de API Ativas
+            </h3>
+            <span class="tag-badge" id="keyCountBadge">1 Chave Registrada</span>
+          </div>
+          <div class="card-body">
+            <div class="keys-table-container">
+              <div class="keys-list" id="apiKeysList">
+                <!-- Chaves carregadas dinamicamente via JS -->
+              </div>
+            </div>
+            <div class="key-usage-info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>Para autenticar, envie o cabeçalho HTTP: <code>Authorization: Bearer &lt;SUA_CHAVE&gt;</code></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: COMO APLICAR NOS SEUS APPS ==================== -->
+    <section class="tab-pane" id="tab-how-to-apply">
+      <div class="section-intro">
+        <h2>Como Aplicar Tudo nos Seus Aplicativos (Guia Passo a Passo)</h2>
+        <p>Instruções claras e diretas para integrar a IA da sua VPS em cada um dos seus projetos e tecnologias.</p>
+      </div>
+
+      <div class="apply-guides-grid">
+        <!-- GUIA 1: WHATSAPP BOT (n8n + Evolution API) -->
+        <div class="guide-card">
+          <div class="guide-badge badge-whatsapp">Integração WhatsApp & Atendimento</div>
+          <div class="guide-header">
+            <div class="guide-icon-box whatsapp-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </div>
+            <div>
+              <h3>1. Bot de WhatsApp no n8n (Projeto n8n_evo existente)</h3>
+              <p>Como conectar as mensagens que chegam no WhatsApp ao Ollama da sua própria VPS.</p>
+            </div>
+          </div>
+          <div class="guide-body">
+            <ol class="guide-steps">
+              <li>
+                <strong>Abra seu n8n existente na VPS:</strong> No fluxo que recebe o Webhook da <strong>Evolution API</strong>.
+              </li>
+              <li>
+                <strong>Adicione um nó "HTTP Request":</strong>
+                <ul>
+                  <li><strong>Method:</strong> <code>POST</code></li>
+                  <li><strong>URL:</strong> <code>http://85.31.60.68:11434/v1/chat/completions</code> (ou <code>http://localhost:8085/v1/chat/completions</code>)</li>
+                  <li><strong>Headers:</strong> <code>Content-Type: application/json</code> e <code>Authorization: Bearer <span class="active-key-span">sua_chave</span></code></li>
+                </ul>
+              </li>
+              <li>
+                <strong>Configure o Body JSON:</strong>
+                <pre class="mini-code"><code>{
+  "model": "qwen2.5-coder:1.5b",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Você é o assistente virtual da empresa. Responda em no máximo 2 frases curtas e cordiais."
+    },
+    {
+      "role": "user",
+      "content": "={{ $json.body.data.message.conversation }}"
+    }
+  ],
+  "temperature": 0.7
+}</code></pre>
+              </li>
+              <li>
+                <strong>Envie de volta para o WhatsApp:</strong> No nó seguinte da Evolution API, pegue o campo <code>{{ $json.choices[0].message.content }}</code> e envie como mensagem de texto.
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- GUIA 2: APLICATIVO WEB / FRONTEND -->
+        <div class="guide-card">
+          <div class="guide-badge badge-web">Web / Frontend</div>
+          <div class="guide-header">
+            <div class="guide-icon-box web-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <div>
+              <h3>2. Aplicativos Web (React, Vue, Next.js ou HTML/JS)</h3>
+              <p>Consumir a IA no navegador ou pelo backend da sua aplicação web.</p>
+            </div>
+          </div>
+          <div class="guide-body">
+            <ol class="guide-steps">
+              <li>
+                <strong>Crie uma rota no seu backend (Recomendado):</strong> Para não expor a chave de API no código JavaScript visível aos usuários, crie uma rota tipo <code>/api/chat</code> no seu servidor web.
+              </li>
+              <li>
+                <strong>Faça o disparo para a sua VPS:</strong>
+                <pre class="mini-code"><code>const res = await fetch("http://85.31.60.68:11434/v1/chat/completions", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer SUA_CHAVE_AQUI"
+  },
+  body: JSON.stringify({
+    model: "qwen2.5-coder:1.5b",
+    messages: [{ role: "user", content: perguntaDoUsuario }]
+  })
+});
+const data = await res.json();
+return data.choices[0].message.content;</code></pre>
+              </li>
+              <li>
+                <strong>Modo Streaming (Efeito ChatGPT):</strong> Se desejar que a resposta apareça letra por letra, defina <code>"stream": true</code> e leia o <code>response.body.getReader()</code> (veja o código completo na aba <em>Gerador de Códigos</em>).
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- GUIA 3: APLICATIVO MOBILE (FLUTTER / REACT NATIVE) -->
+        <div class="guide-card">
+          <div class="guide-badge badge-mobile">Mobile iOS & Android</div>
+          <div class="guide-header">
+            <div class="guide-icon-box mobile-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <div>
+              <h3>3. Aplicativos Mobile (Flutter / Dart & React Native)</h3>
+              <p>Integração nativa para apps Android e iOS.</p>
+            </div>
+          </div>
+          <div class="guide-body">
+            <ol class="guide-steps">
+              <li>
+                <strong>Instale a biblioteca HTTP:</strong> No Flutter use <code>http: ^1.2.0</code>. No React Native use <code>axios</code> ou o <code>fetch</code> nativo.
+              </li>
+              <li>
+                <strong>Permissão de Internet:</strong> No Android, garanta que o <code>AndroidManifest.xml</code> tenha <code>&lt;uses-permission android:name="android.permission.INTERNET"/&gt;</code>.
+              </li>
+              <li>
+                <strong>Chamada direta à VPS:</strong> Use a URL com HTTPS (configurada na aba Domínios do EasyPanel) ou com IP direto para desenvolvimento:
+                <pre class="mini-code"><code>final response = await http.post(
+  Uri.parse('http://85.31.60.68:11434/v1/chat/completions'),
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer SUA_CHAVE_AQUI'
+  },
+  body: jsonEncode({
+    'model': 'qwen2.5-coder:1.5b',
+    'messages': [{'role': 'user', 'content': texto}]
+  })
+);</code></pre>
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- GUIA 4: BACKEND / MICROSERVIÇOS -->
+        <div class="guide-card">
+          <div class="guide-badge badge-backend">Backend & APIs</div>
+          <div class="guide-header">
+            <div class="guide-icon-box backend-bg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <div>
+              <h3>4. Backend (Node.js, Python, PHP, Java, Go)</h3>
+              <p>Conecte usando os SDKs oficiais da OpenAI sem instalar pacotes estranhos.</p>
+            </div>
+          </div>
+          <div class="guide-body">
+            <p class="guide-lead">Como o Ollama na sua VPS segue a especificação da OpenAI, basta mudar apenas 1 parâmetro (<code>baseURL</code>):</p>
+            <pre class="mini-code"><code>// Node.js
+import OpenAI from "openai";
+
+const ai = new OpenAI({
+  baseURL: "http://85.31.60.68:11434/v1", // Aponta p/ sua VPS!
+  apiKey: "sua_chave_gerada"
+});
+
+const completion = await ai.chat.completions.create({
+  model: "qwen2.5-coder:1.5b",
+  messages: [{ role: "user", content: "Olá!" }]
+});</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: CONEXÃO MCP ==================== -->
+    <section class="tab-pane" id="tab-mcp">
+      <div class="section-intro">
+        <h2>Conexão por MCP (Model Context Protocol)</h2>
+        <p>O <strong>Model Context Protocol (MCP)</strong> é o padrão aberto que conecta assistentes como <strong>Cursor, Claude Desktop, Antigravity IDE e Windsurf</strong> diretamente à sua VPS, permitindo que eles usem a sua IA para programar, analisar e responder perguntas.</p>
+      </div>
+
+      <div class="mcp-grid">
+        <div class="panel-card flex-2">
+          <div class="card-header">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+              Configuração MCP Pronta para Copiar
+            </h3>
+            <span class="tag-status">Stdio JSON-RPC</span>
+          </div>
+          <div class="card-body">
+            <p class="text-dim-sm">Cole o bloco abaixo no arquivo de configuração do seu cliente MCP (por exemplo: <code>claude_desktop_config.json</code> ou nas configurações de MCP do Cursor / Antigravity):</p>
+            
+            <div class="code-box-wrapper mt-1">
+              <div class="code-header">
+                <span class="code-title">claude_desktop_config.json &bull; Configuração MCP</span>
+                <button class="btn-copy" id="btnCopyMcpJson">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  Copiar Configuração JSON
+                </button>
+              </div>
+              <pre class="code-content"><code id="mcpConfigBlock">{
+  "mcpServers": {
+    "lynx-vps-ai": {
+      "command": "python",
+      "args": [
+        "c:/Users/lynx/Documents/Ai Lynx na VPS Easy Panel/mcp_server.py"
+      ]
+    }
+  }
+}</code></pre>
+            </div>
+
+            <div class="mcp-tools-list">
+              <h4>Ferramentas que o Servidor MCP Disponibiliza:</h4>
+              <div class="mcp-tool-item">
+                <span class="tool-badge">ask_vps_ai</span>
+                <span class="tool-desc">Envia prompts e tarefas para qualquer modelo de IA rodando na sua VPS Hostinger (ex: <code>qwen2.5-coder:1.5b</code>, <code>llama3:latest</code>).</span>
+              </div>
+              <div class="mcp-tool-item">
+                <span class="tool-badge">list_vps_models</span>
+                <span class="tool-desc">Lista em tempo real quais modelos estão baixados e disponíveis na VPS.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <div class="card-header">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              Como Testar o MCP Manualmente
+            </h3>
+          </div>
+          <div class="card-body">
+            <p class="text-dim-sm">Você pode testar se o servidor MCP está respondendo no seu computador rodando o seguinte comando no terminal:</p>
+            <div class="install-box mt-1">
+              <code>python mcp_server.py</code>
+            </div>
+            <p class="text-dim-sm mt-1">O arquivo <a href="file:///c:/Users/lynx/Documents/Ai%20Lynx%20na%20VPS%20Easy%20Panel/mcp_server.py" style="color: var(--primary);">mcp_server.py</a> já está criado na raiz da pasta do seu projeto e se comunica diretamente com a sua VPS (<code>85.31.60.68</code>)!</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: GERADOR DE CÓDIGO ==================== -->
+    <section class="tab-pane" id="tab-generator">
+      <div class="section-intro">
+        <h2>Gerador de Código para Seus Aplicativos</h2>
+        <p>Selecione a linguagem do seu sistema e o modelo desejado. O código abaixo já sai pronto com a URL da sua VPS, a chave de API selecionada e a estrutura oficial OpenAI.</p>
+      </div>
+
+      <div class="generator-controls">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="genLanguage">Linguagem / Plataforma</label>
+            <select id="genLanguage">
+              <option value="curl">cURL / Terminal</option>
+              <option value="javascript">JavaScript / TypeScript (Fetch / Browser)</option>
+              <option value="nodejs">Node.js (Biblioteca Oficial OpenAI)</option>
+              <option value="python">Python (Requests ou SDK OpenAI)</option>
+              <option value="php">PHP (cURL / Guzzle)</option>
+              <option value="flutter">Flutter / Dart (App Mobile)</option>
+              <option value="n8n">n8n (HTTP Request Node p/ WhatsApp Bot)</option>
+            </select>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="genModel">Modelo Selecionado</label>
+            <select id="genModel">
+              <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b (Instalado na VPS)</option>
+              <option value="llama3:latest">llama3:latest (Instalado na VPS)</option>
+              <option value="codegemma:latest">codegemma:latest (Instalado na VPS)</option>
+              <option value="gemma2:latest">gemma2:latest (Instalado na VPS)</option>
+            </select>
+          </div>
+
+          <div class="form-group flex-1">
+            <label for="genStream">Modo de Resposta</label>
+            <select id="genStream">
+              <option value="false">JSON Completo (Mais fácil para apps)</option>
+              <option value="true">Streaming (Letra por letra como ChatGPT)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-box-wrapper">
+        <div class="code-header">
+          <div class="code-title">
+            <span class="code-dot red"></span>
+            <span class="code-dot yellow"></span>
+            <span class="code-dot green"></span>
+            <span id="codeLangLabel">cURL &bull; Endpoint: /v1/chat/completions</span>
+          </div>
+          <button class="btn-copy" id="btnCopyCode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copiar Código
+          </button>
+        </div>
+        <pre class="code-content"><code id="generatedCodeBlock">Carregando código...</code></pre>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: PLAYGROUND ==================== -->
+    <section class="tab-pane" id="tab-playground">
+      <div class="section-intro">
+        <h2>Playground de Teste em Tempo Real</h2>
+        <p>Envie prompts para a sua VPS agora mesmo para testar velocidade, raciocínio e conferir a resposta antes de implementar no seu aplicativo.</p>
+      </div>
+
+      <div class="playground-layout">
+        <!-- Settings Column -->
+        <div class="playground-sidebar">
+          <div class="panel-card">
+            <div class="card-header">
+              <h3>Parâmetros do Teste</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label for="playModelSelect">Modelo a Testar</label>
+                <select id="playModelSelect">
+                  <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b (Rápido / Código)</option>
+                  <option value="llama3:latest">llama3:latest (Geral / 8B)</option>
+                  <option value="codegemma:latest">codegemma:latest (Código 9B)</option>
+                  <option value="gemma2:latest">gemma2:latest (Geral 9B)</option>
+                </select>
+                <small class="helper-text" id="modelHelpText">Exibindo modelos instalados na VPS.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="playTemperature">Temperatura (Criatividade): <span id="tempVal">0.7</span></label>
+                <input type="range" id="playTemperature" min="0" max="1" step="0.1" value="0.7">
+                <div class="range-labels">
+                  <span>0 (Exato)</span>
+                  <span>1 (Criativo)</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="playSystemPrompt">Prompt de Sistema (Opcional)</label>
+                <textarea id="playSystemPrompt" rows="3" placeholder="Ex: Você é a Lynx, assistente de vendas da empresa..."></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="playStreamToggle" checked>
+                  Ativar Modo Streaming (Letra por letra)
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Output Column -->
+        <div class="playground-main">
+          <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+              <div class="message assistant">
+                <div class="msg-avatar">AI</div>
+                <div class="msg-content">
+                  <p>Olá! Este é o testador direto da sua VPS (<strong>85.31.60.68</strong>). Selecione o modelo acima (ex: <code>qwen2.5-coder:1.5b</code> ou <code>llama3:latest</code>) e digite uma mensagem para testar.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-input-bar">
+              <textarea id="chatInput" rows="2" placeholder="Digite sua mensagem de teste aqui (Ex: Crie uma função em JS para validar CPF)..."></textarea>
+              <button class="btn btn-primary" id="btnSendMessage">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 7: MODELOS NA VPS ==================== -->
+    <section class="tab-pane" id="tab-models">
+      <div class="section-intro">
+        <h2>Modelos de IA na sua VPS (32 GB RAM)</h2>
+        <p>Estes são os modelos que você já possui na VPS e modelos adicionais recomendados para cada caso de uso:</p>
+      </div>
+
+      <div class="models-grid" id="modelsGridContainer">
+        <!-- Modelos da VPS renderizados dinamicamente -->
+      </div>
+
+      <!-- Script de Instalação em Massa -->
+      <div class="batch-install-panel">
+        <div class="batch-header">
+          <div>
+            <h3>🚀 Comando Único para Baixar Novos Modelos Adicionais</h3>
+            <p>Se você quiser instalar outros modelos recomendados (como Llama 3.2 3B e DeepSeek R1), execute este comando no terminal SSH da sua VPS:</p>
+          </div>
+          <button class="btn btn-primary" id="btnCopyBatchScript">Copiar Comando Completo</button>
+        </div>
+        <pre class="code-terminal"><code id="batchScriptCode">docker exec -it $(docker ps -qf "name=ollama" | head -n 1) sh -c "ollama pull llama3.2:3b && ollama pull deepseek-r1:7b && ollama pull nomic-embed-text"</code></pre>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 8: PROMPTS PRONTOS ==================== -->
+    <section class="tab-pane" id="tab-prompts">
+      <div class="section-intro">
+        <h2>Prompts de Sistema Prontos para Seus Aplicativos</h2>
+        <p>Copie e use no papel <code>system</code> das suas requisições para evitar alucinações e garantir o formato correto.</p>
+      </div>
+
+      <div class="prompts-accordion">
+        <!-- Prompt 1: Atendente WhatsApp -->
+        <div class="prompt-item active">
+          <div class="prompt-header">
+            <div class="prompt-title">
+              <span class="badge-role">Atendimento WhatsApp / Vendas</span>
+              <h4>Assistente de Atendimento Humanizado & Vendas</h4>
+            </div>
+            <button class="btn-copy-prompt" data-target="prompt1">Copiar Prompt</button>
+          </div>
+          <div class="prompt-body">
+            <textarea id="prompt1" readonly rows="8">Você é a Lynx, assistente virtual inteligente e amigável da empresa.
+Seu objetivo é tirar dúvidas sobre nossos serviços, qualificar o cliente e conduzi-lo para o fechamento.
+
+Diretrizes Obrigatórias:
+1. Responda sempre em português brasileiro de forma natural, calorosa e concisa (máximo de 2 a 3 frases por mensagem).
+2. Não envie blocos gigantes de texto; no WhatsApp as pessoas preferem mensagens diretas.
+3. Se o cliente demonstrar intenção de compra ou pedir orçamento, peça educadamente o nome e telefone dele para nossa equipe entrar em contato.
+4. Nunca invente informações técnicas que você desconhece; se não souber, diga que irá encaminhar para um especialista humano.
+5. Seja sempre prestativa e finalize as mensagens com uma pergunta engajadora.</textarea>
+          </div>
+        </div>
+
+        <!-- Prompt 2: JSON Estrito -->
+        <div class="prompt-item">
+          <div class="prompt-header">
+            <div class="prompt-title">
+              <span class="badge-role">Backend & APIs</span>
+              <h4>Extrator de Dados em JSON Estrito (Sem Erros de Sintaxe)</h4>
+            </div>
+            <button class="btn-copy-prompt" data-target="prompt2">Copiar Prompt</button>
+          </div>
+          <div class="prompt-body">
+            <textarea id="prompt2" readonly rows="8">Você é um motor de extração de dados e análise estruturada.
+Sua única saída DEVE SER UM OBJETO JSON VÁLIDO.
+
+Regras Críticas:
+1. NUNCA adicione explicações, comentários, saudações ou blocos de markdown adicionais como ```json no início ou no fim.
+2. Devolva apenas o JSON puro começando com { e terminando com }.
+3. Se algum campo solicitado não estiver disponível no texto de entrada, preencha o valor como null.
+4. Garanta que todas as aspas duplas internas estejam devidamente escapadas para evitar quebras em JSON.parse().</textarea>
+          </div>
+        </div>
+
+        <!-- Prompt 3: Assistente de Código -->
+        <div class="prompt-item">
+          <div class="prompt-header">
+            <div class="prompt-title">
+              <span class="badge-role">Desenvolvedor</span>
+              <h4>Arquiteto de Software & Refatorador de Código</h4>
+            </div>
+            <button class="btn-copy-prompt" data-target="prompt3">Copiar Prompt</button>
+          </div>
+          <div class="prompt-body">
+            <textarea id="prompt3" readonly rows="8">Você é um Arquiteto de Software Sênior e Especialista em Clean Code e Segurança.
+Ao responder a solicitações de código:
+1. Priorize código moderno, tipado, legível e performático.
+2. Não inclua código desnecessário ou boilerplate inútil; foque na solução exata do problema.
+3. Adicione tratamento de erros robusto (try/catch, validações de entrada e sanitização).
+4. Explique em poucas linhas o motivo das decisões arquiteturais tomadas e aponte possíveis gargalos ou cuidados com segurança.</textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 9: CONFIG EASYPANEL ==================== -->
+    <section class="tab-pane" id="tab-easypanel">
+      <div class="section-intro">
+        <h2>Como Configurar no EasyPanel sem Modificar Nada Existente</h2>
+        <p>Instruções passo a passo exatas para garantir que seu <code>lynx_ai</code> aceite conexões externas dos seus apps com máxima performance e segurança.</p>
+      </div>
+
+      <div class="easypanel-steps">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Ajustar as Variáveis de Ambiente no Serviço Ollama</h3>
+            <p>No seu EasyPanel em <code>http://85.31.60.68:3000</code>, acesse o projeto <strong>lynx_ai</strong> &rarr; clique no serviço <strong>ollama</strong> &rarr; vá na aba <strong>Environment</strong> (Ambiente).</p>
+            <div class="env-table">
+              <div class="env-row">
+                <span class="env-key">OLLAMA_ORIGINS</span>
+                <span class="env-val">*</span>
+                <span class="env-desc">Permite que seus aplicativos chamem a IA sem bloqueio de CORS.</span>
+              </div>
+              <div class="env-row">
+                <span class="env-key">OLLAMA_KEEP_ALIVE</span>
+                <span class="env-val">24h</span>
+                <span class="env-desc">Mantém o modelo carregado na memória RAM de 32GB para respostas instantâneas.</span>
+              </div>
+              <div class="env-row">
+                <span class="env-key">OLLAMA_NUM_PARALLEL</span>
+                <span class="env-val">4</span>
+                <span class="env-desc">Permite até 4 requisições simultâneas usando seus 8 núcleos vCPU.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>Portas e Domínios</h3>
+            <p>Seus apps se comunicam diretamente na porta <code>11434</code> (ex: <code>http://85.31.60.68:11434/v1/chat/completions</code>) ou através de um subdomínio com HTTPS que você pode criar na aba <strong>Domains</strong> do EasyPanel.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div>Lynx AI Hub &bull; Hospedado na VPS 85.31.60.68 &bull; EasyPanel Ubuntu 24.04</div>
+      <div class="footer-note">Compatível com OpenAI API v1 &bull; 100% Gratuito &bull; Suporte Nativo a MCP & API Keys</div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

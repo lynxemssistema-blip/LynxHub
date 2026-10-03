@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  lynx-hub:
+    build: .
+    container_name: lynx_ai_hub
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      - PORT=8085
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./keys.json:/app/keys.json
