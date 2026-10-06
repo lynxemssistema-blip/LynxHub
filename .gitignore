@@ -11,6 +11,7 @@ ENV/
 # Build artifacts & pacotes zip
 dist/
 *.zip
+sessions.json
 
 # Logs
 *.log

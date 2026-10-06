@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnLogout = document.getElementById('btnLogout');
 
   function getAuthHeaders() {
-    const token = localStorage.getItem('lynx_session_token') || '';
+    const token = localStorage.getItem('lynx_session_token') || state.apiKey || 'lynx_sk_live_vps_default_2026';
     const headers = { 'Content-Type': 'application/json' };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
