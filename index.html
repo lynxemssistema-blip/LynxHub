@@ -82,6 +82,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Prompts Prontos
         </button>
+        <button class="tab-btn btn-tab-antigravity" data-tab="tab-antigravity" id="btnTabAntigravity">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Arquiteto Antigravity
+          <span class="tab-badge-glow">PROMPT IA</span>
+        </button>
         <button class="tab-btn" data-tab="tab-easypanel" id="btnTabEasypanel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Config EasyPanel
@@ -815,6 +820,296 @@ Ao responder a solicitações de código:
             <p>Seus apps se comunicam diretamente na porta <code>11434</code> (ex: <code>http://85.31.60.68:11434/v1/chat/completions</code>) ou através de um subdomínio com HTTPS que você pode criar na aba <strong>Domains</strong> do EasyPanel.</p>
           </div>
         </div>
+      </div>
+    <!-- ==================== TAB 10: ARQUITETO DE PROMPTS ANTIGRAVITY ==================== -->
+    <section class="tab-pane" id="tab-antigravity">
+      <div class="section-intro antigravity-intro">
+        <div class="intro-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          Google Antigravity &bull; Engenharia de Prompt Especialista &bull; Memória Individual por Projeto
+        </div>
+        <h2>Arquiteto de Prompts Antigravity</h2>
+        <p>Converse com o agente especialista para especificar, planejar e gerar o prompt mestre do seu próximo aplicativo no Google Antigravity. Crie conversas separadas por projeto (ex: Protheus, Sinco), anexe documentos, envie imagens e dite comandos por voz!</p>
+      </div>
+
+      <div class="antigravity-workspace">
+        
+        <!-- COLUNA 1: SIDEBAR DE SESSÕES / PROJETOS -->
+        <aside class="antigravity-sidebar">
+          <div class="sidebar-header">
+            <button class="btn-new-session" id="btnNewAntigravitySession">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Nova Conversa</span>
+            </button>
+          </div>
+
+          <div class="session-search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="inputSearchSessions" placeholder="Filtrar conversas (ex: Protheus, Sinco)...">
+          </div>
+
+          <div class="sessions-list" id="antigravitySessionsList">
+            <!-- Sessões dinâmicas criadas e salvas no localStorage -->
+          </div>
+
+          <!-- Memória Aprendida da Conversa Ativa -->
+          <div class="project-memory-card" id="projectMemoryCard">
+            <div class="memory-card-header">
+              <h4>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14h-2v-2h2zm0-4h-2V7h2z"></path>
+                </svg>
+                Memória do Projeto
+              </h4>
+              <span class="memory-count-badge" id="memoryCountBadge">0 aprendizados</span>
+            </div>
+            <div class="memory-tags-cloud" id="projectMemoryTags">
+              <span class="memory-tag empty">Inicie a conversa para o agente extrair e memorizar regras deste projeto.</span>
+            </div>
+            <div class="memory-stats-row">
+              <span id="memoryFilesCount">📁 0 arquivos</span>
+              <span id="memoryImagesCount">🖼️ 0 imagens</span>
+              <span id="memoryAudioCount">🎙️ 0 áudios</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- COLUNA 2: ÁREA DE CHAT & ENTREVISTA -->
+        <section class="antigravity-chat-section">
+          <!-- Header do Chat -->
+          <div class="chat-top-bar">
+            <div class="chat-project-info">
+              <div class="chat-project-title-wrap">
+                <span class="chat-project-icon">🚀</span>
+                <h3 id="currentSessionTitle">Novo Projeto Antigravity</h3>
+                <button class="btn-rename-session" id="btnRenameSession" title="Renomear conversa">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div class="chat-meta-tags">
+                <span class="meta-pill" id="currentSessionModelPill">qwen2.5-coder:1.5b</span>
+                <span class="meta-pill-outline" id="currentSessionDatePill">Agora</span>
+                <span class="meta-pill-memory" id="currentSessionMemoryPill">🧠 Memória Individual Ativa</span>
+              </div>
+            </div>
+
+            <div class="chat-header-actions">
+              <select id="selectAntigravityModel" class="select-sm-dark" title="Modelo de IA da VPS para este projeto">
+                <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b (Rápido / Código)</option>
+                <option value="llama3:latest">llama3:latest (Raciocínio & Geral)</option>
+                <option value="codegemma:latest">codegemma:latest (Google Code Gemma)</option>
+                <option value="gemma2:latest">gemma2:latest (Google Gemma 2)</option>
+              </select>
+              <button class="btn-sm-action" id="btnForceGeneratePrompt" title="Gerar ou atualizar o prompt mestre agora">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>Gerar Prompt</span>
+              </button>
+              <button class="btn-sm-action btn-toggle-panel" id="btnTogglePromptPanel" title="Expandir/Recolher painel do prompt mestre">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="15" y1="3" x2="15" y2="21"></line>
+                </svg>
+                <span>Prompt Live</span>
+              </button>
+              <button class="btn-sm-danger" id="btnClearCurrentChat" title="Limpar histórico desta conversa">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Mensagens do Chat -->
+          <div class="antigravity-messages-container" id="antigravityChatMessages">
+            <!-- Mensagens renderizadas via app.js -->
+          </div>
+
+          <!-- Sugestões Rápidas (Chips) -->
+          <div class="chat-quick-suggestions" id="antigravitySuggestions">
+            <span class="suggestions-label">💡 Sugestões rápidas:</span>
+            <button class="suggestion-chip" data-text="Quero criar um módulo financeiro integrado ao Protheus (TOTVS) via API REST, com telas em Next.js e Supabase.">💼 Módulo Protheus</button>
+            <button class="suggestion-chip" data-text="Quero desenvolver o sistema Sinco para controle e gestão de pedidos com banco PostgreSQL na VPS.">📦 Sistema Sinco</button>
+            <button class="suggestion-chip" data-text="O app deve usar autenticação do Supabase, dark mode elegante com Tailwind e gráficos dinâmicos.">🎨 Design & Supabase</button>
+            <button class="suggestion-chip" data-text="Gere o prompt mestre do Google Antigravity completo com a arquitetura detalhada agora!">🚀 Gerar Prompt Maestro</button>
+          </div>
+
+          <!-- Dock de Input Multimodal -->
+          <div class="antigravity-input-dock">
+            <!-- Bandeja de Anexos Pendentes -->
+            <div class="attachments-tray" id="attachmentsTray" style="display: none;">
+              <!-- Chips de imagens e arquivos anexados -->
+            </div>
+
+            <!-- Gravação de Áudio Ativa (Onda Sonora) -->
+            <div class="audio-recording-bar" id="audioRecordingBar" style="display: none;">
+              <div class="recording-indicator">
+                <span class="recording-pulse"></span>
+                <span class="recording-text" id="recordingStatusText">Ouvindo você... Fale o que quer no seu aplicativo</span>
+              </div>
+              <div class="recording-waveform">
+                <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <button class="btn-cancel-recording" id="btnCancelRecording" title="Cancelar gravação">Cancelar</button>
+              <button class="btn-stop-recording" id="btnStopRecording" title="Concluir áudio">Enviar Fala</button>
+            </div>
+
+            <!-- Campo de Texto & Ações -->
+            <div class="input-row">
+              <div class="input-actions-left">
+                <!-- Anexar Arquivo -->
+                <button class="btn-attach" id="btnAttachFile" title="Anexar arquivo de código, regras ou documento (.txt, .md, .json, .ts, .py, .sql, .csv)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                  </svg>
+                </button>
+                <input type="file" id="inputFileAttachment" multiple accept=".txt,.md,.json,.ts,.js,.py,.sql,.csv,.yaml,.yml,.docx,.pdf" style="display: none;">
+
+                <!-- Anexar Imagem -->
+                <button class="btn-attach" id="btnAttachImage" title="Anexar imagem, print ou diagrama de tela (.png, .jpg, .webp)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </button>
+                <input type="file" id="inputImageAttachment" multiple accept="image/*" style="display: none;">
+
+                <!-- Gravar Áudio / Falar por Voz -->
+                <button class="btn-attach btn-voice" id="btnVoiceInput" title="Gravar ideia por voz (Microfone)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <textarea 
+                id="antigravityPromptInput" 
+                rows="1" 
+                placeholder="Diga o que você quer desenvolver, anexe arquivos ou cole prints (Shift+Enter pula linha)..."
+              ></textarea>
+
+              <button class="btn-send-antigravity" id="btnSendAntigravityPrompt" title="Enviar mensagem (Enter)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+            <div class="input-hint-row">
+              <span>💡 Dica: Cole prints direto com <strong>Ctrl+V</strong> ou arraste arquivos para cá. O agente memoriza tudo nesta conversa!</span>
+              <span class="vps-active-status" id="antigravityVpsStatus">🟢 Conectado à VPS (85.31.60.68)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- COLUNA 3: PAINEL DO PROMPT MESTRE ANTIGRAVITY (LIVE SPEC) -->
+        <aside class="antigravity-prompt-panel" id="antigravityPromptPanel">
+          <div class="prompt-panel-header">
+            <div class="panel-header-title">
+              <span class="prompt-status-badge live" id="promptStatusBadge">PROMPT MESTRE AO VIVO</span>
+              <h4>Especificação Antigravity</h4>
+            </div>
+            <div class="prompt-panel-tabs">
+              <button class="prompt-subtab active" data-subtab="view-prompt">Prompt Mestre</button>
+              <button class="prompt-subtab" data-subtab="view-rules">Regras (AGENTS.md)</button>
+              <button class="prompt-subtab" data-subtab="view-skill">Skill (SKILL.md)</button>
+              <button class="prompt-subtab" data-subtab="view-checklist">Checklist</button>
+            </div>
+          </div>
+
+          <div class="prompt-panel-content">
+            <!-- View 1: Prompt Mestre Antigravity -->
+            <div class="subtab-pane active" id="subtab-view-prompt">
+              <div class="prompt-toolbar">
+                <span class="prompt-word-count" id="promptWordCount">0 palavras</span>
+                <div class="prompt-actions-row">
+                  <button class="btn-copy-code-sm" id="btnCopyGeneratedPrompt" title="Copiar todo o prompt para colar no Google Antigravity">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>Copiar Prompt</span>
+                  </button>
+                  <button class="btn-download-sm" id="btnDownloadPrompt" title="Baixar como arquivo Markdown">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>.md</span>
+                  </button>
+                </div>
+              </div>
+              <pre class="prompt-code-display"><code id="codeGeneratedPrompt">O seu prompt mestre para o Google Antigravity será construído aqui automaticamente à medida que você conversa com o agente!
+
+Diga o que você quer desenvolver (ex: Protheus, Sinco, CRM) ou clique em uma das sugestões ao lado.</code></pre>
+            </div>
+
+            <!-- View 2: Regras AGENTS.md -->
+            <div class="subtab-pane" id="subtab-view-rules">
+              <div class="prompt-toolbar">
+                <span class="prompt-word-count">Regras & Padrões do Projeto</span>
+                <button class="btn-copy-code-sm" id="btnCopyRules">Copiar AGENTS.md</button>
+              </div>
+              <pre class="prompt-code-display"><code id="codeRulesDisplay"># AGENTS.md - Regras do Projeto Antigravity
+# Este arquivo guiará o Antigravity em todas as sessões deste app.</code></pre>
+            </div>
+
+            <!-- View 3: Skill SKILL.md -->
+            <div class="subtab-pane" id="subtab-view-skill">
+              <div class="prompt-toolbar">
+                <span class="prompt-word-count">Skill Sob Medida</span>
+                <button class="btn-copy-code-sm" id="btnCopySkill">Copiar SKILL.md</button>
+              </div>
+              <pre class="prompt-code-display"><code id="codeSkillDisplay">---
+name: app-specialist
+description: Skill especialista gerada pelo Lynx AI Hub
+---</code></pre>
+            </div>
+
+            <!-- View 4: Checklist de Implementação -->
+            <div class="subtab-pane" id="subtab-view-checklist">
+              <div class="checklist-container" id="checklistContainer">
+                <div class="check-item"><input type="checkbox" id="c1" checked> <label for="c1">Definição do Objetivo & Escopo</label></div>
+                <div class="check-item"><input type="checkbox" id="c2"> <label for="c2">Stack Tecnológica & Arquitetura</label></div>
+                <div class="check-item"><input type="checkbox" id="c3"> <label for="c3">Entidades de Dados & Banco (PostgreSQL)</label></div>
+                <div class="check-item"><input type="checkbox" id="c4"> <label for="c4">Integração Externa (Protheus / Sinco / Supabase)</label></div>
+                <div class="check-item"><input type="checkbox" id="c5"> <label for="c5">Padrão de Design & Aesthetics Antigravity</label></div>
+                <div class="check-item"><input type="checkbox" id="c6"> <label for="c6">Geração do Prompt Mestre Final</label></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="prompt-panel-footer">
+            <button class="btn-ask-refine" id="btnAskRefinePrompt">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+                <path d="M21 21v-5h-5"></path>
+              </svg>
+              <span>Refinar Especificação com a IA</span>
+            </button>
+          </div>
+        </aside>
+
       </div>
     </section>
 

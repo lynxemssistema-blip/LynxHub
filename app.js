@@ -1204,4 +1204,1284 @@ Future<String> enviarParaLynxAI(String perguntaUsuario) async {
       if (authPassword) authPassword.value = '';
     });
   }
+
+  // =========================================================================
+  // ==================== ARQUITETO DE PROMPTS ANTIGRAVITY ====================
+  // =========================================================================
+
+  // Storage Keys
+  const AG_STORAGE_SESSIONS = 'lynx_antigravity_sessions';
+  const AG_STORAGE_ACTIVE = 'lynx_active_antigravity_session';
+
+  // Elements
+  const btnTabAntigravity = document.getElementById('btnTabAntigravity');
+  const btnNewAntigravitySession = document.getElementById('btnNewAntigravitySession');
+  const inputSearchSessions = document.getElementById('inputSearchSessions');
+  const antigravitySessionsList = document.getElementById('antigravitySessionsList');
+  const projectMemoryTags = document.getElementById('projectMemoryTags');
+  const memoryCountBadge = document.getElementById('memoryCountBadge');
+  const memoryFilesCount = document.getElementById('memoryFilesCount');
+  const memoryImagesCount = document.getElementById('memoryImagesCount');
+  const memoryAudioCount = document.getElementById('memoryAudioCount');
+
+  const currentSessionTitle = document.getElementById('currentSessionTitle');
+  const btnRenameSession = document.getElementById('btnRenameSession');
+  const currentSessionModelPill = document.getElementById('currentSessionModelPill');
+  const currentSessionDatePill = document.getElementById('currentSessionDatePill');
+  const currentSessionMemoryPill = document.getElementById('currentSessionMemoryPill');
+  const selectAntigravityModel = document.getElementById('selectAntigravityModel');
+  const btnForceGeneratePrompt = document.getElementById('btnForceGeneratePrompt');
+  const btnTogglePromptPanel = document.getElementById('btnTogglePromptPanel');
+  const btnClearCurrentChat = document.getElementById('btnClearCurrentChat');
+  const antigravityChatMessages = document.getElementById('antigravityChatMessages');
+  const antigravitySuggestions = document.getElementById('antigravitySuggestions');
+
+  const attachmentsTray = document.getElementById('attachmentsTray');
+  const audioRecordingBar = document.getElementById('audioRecordingBar');
+  const recordingStatusText = document.getElementById('recordingStatusText');
+  const btnCancelRecording = document.getElementById('btnCancelRecording');
+  const btnStopRecording = document.getElementById('btnStopRecording');
+  const btnAttachFile = document.getElementById('btnAttachFile');
+  const inputFileAttachment = document.getElementById('inputFileAttachment');
+  const btnAttachImage = document.getElementById('btnAttachImage');
+  const inputImageAttachment = document.getElementById('inputImageAttachment');
+  const btnVoiceInput = document.getElementById('btnVoiceInput');
+  const antigravityPromptInput = document.getElementById('antigravityPromptInput');
+  const btnSendAntigravityPrompt = document.getElementById('btnSendAntigravityPrompt');
+  const antigravityVpsStatus = document.getElementById('antigravityVpsStatus');
+
+  const antigravityPromptPanel = document.getElementById('antigravityPromptPanel');
+  const promptStatusBadge = document.getElementById('promptStatusBadge');
+  const promptSubtabs = document.querySelectorAll('.prompt-subtab');
+  const promptWordCount = document.getElementById('promptWordCount');
+  const btnCopyGeneratedPrompt = document.getElementById('btnCopyGeneratedPrompt');
+  const btnDownloadPrompt = document.getElementById('btnDownloadPrompt');
+  const codeGeneratedPrompt = document.getElementById('codeGeneratedPrompt');
+  const codeRulesDisplay = document.getElementById('codeRulesDisplay');
+  const codeSkillDisplay = document.getElementById('codeSkillDisplay');
+  const btnCopyRules = document.getElementById('btnCopyRules');
+  const btnCopySkill = document.getElementById('btnCopySkill');
+  const btnAskRefinePrompt = document.getElementById('btnAskRefinePrompt');
+
+  // State
+  let agSessions = [];
+  let activeSessionId = null;
+  let pendingAttachments = [];
+  let speechRecognizer = null;
+  let isSpeechRecording = false;
+
+  // Helper: Escape HTML
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // Simple Markdown Formatter
+  function formatMarkdown(text) {
+    if (!text) return '';
+    let html = escapeHtml(text);
+
+    // Code blocks ```lang ... ```
+    html = html.replace(/```([a-zA-Z0-9_\-\.]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+      return `<pre><code class="language-${lang}">${code}</code></pre>`;
+    });
+
+    // Inline code `...`
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Bold **...**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Italic *...*
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+    // Lists - ... or * ...
+    html = html.replace(/^\s*[-*]\s+(.*)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+
+    // Headers ### ...
+    html = html.replace(/^### (.*$)/gim, '<h4 style="margin: 0.5rem 0; color: #38bdf8;">$1</h4>');
+    html = html.replace(/^## (.*$)/gim, '<h3 style="margin: 0.6rem 0; color: #34d399;">$1</h3>');
+    html = html.replace(/^# (.*$)/gim, '<h2 style="margin: 0.75rem 0; color: #fff;">$1</h2>');
+
+    // Paragraphs / line breaks
+    html = html.replace(/\n\n/g, '<br><br>');
+    html = html.replace(/\n/g, '<br>');
+
+    return html;
+  }
+
+  // Default Initial Sessions
+  function initDefaultSessions() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    return [
+      {
+        id: 'session_protheus_fin',
+        title: 'Protheus - Módulo Financeiro',
+        model: 'qwen2.5-coder:1.5b',
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+        messages: [
+          {
+            role: 'assistant',
+            content: `Olá! Sou o **Arquiteto de Prompts Antigravity**, especialista em engenharia de prompt para criar aplicativos de ponta no **Google Antigravity (AGY)**.\n\nEsta conversa é dedicada ao projeto **Protheus - Módulo Financeiro**. Aqui nós vamos coletar todos os requisitos (APIs REST TOTVS, tabelas SE1/SE2, regras de aprovação de títulos, autenticação e telas em Next.js/Supabase) para gerar um **Prompt Mestre Completo e Impecável**.\n\nPara começarmos:\n1. Quais endpoints ou rotas da API REST do Protheus esse app deve consumir?\n2. O usuário fará apenas consulta ou também inclusão/baixa de títulos?\n\n*💡 Você pode anexar arquivos de documentação, esquemas JSON ou enviar áudios!*`,
+            timestamp: timeStr,
+            attachments: [],
+            insights: ['TOTVS Protheus', 'API REST', 'Financeiro']
+          }
+        ],
+        knowledgeBase: {
+          projectName: 'Protheus Financeiro',
+          targetPlatform: 'Google Antigravity',
+          techStack: ['Next.js App Router', 'TypeScript', 'Supabase PostgreSQL', 'TailwindCSS'],
+          businessRules: ['Integração com API REST Protheus', 'Contas a Pagar & Receber'],
+          entities: ['TitulosPagar', 'Fornecedores', 'Bancos'],
+          integrations: ['TOTVS Protheus REST API', 'PostgreSQL VPS'],
+          files: [],
+          images: [],
+          audioTranscripts: [],
+          learnedRules: ['Utilizar endpoints REST padrão Protheus com Basic Auth / OAuth2']
+        },
+        generatedPrompt: '',
+        generatedRules: '',
+        generatedSkill: ''
+      },
+      {
+        id: 'session_sinco_gestao',
+        title: 'Sinco - Gestão de Pedidos',
+        model: 'llama3:latest',
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+        messages: [
+          {
+            role: 'assistant',
+            content: `Bem-vindo ao espaço do projeto **Sinco - Gestão de Pedidos**! 🚀\n\nNesta sessão individual, tudo o que você conversar sobre o Sinco ficará isolado e memorizado apenas aqui.\n\nConte-me como funciona o fluxo de pedidos no Sinco: como o pedido entra, quais status existem (Orçamento, Faturado, Entregue) e qual o banco de dados que usaremos (PostgreSQL na VPS EasyPanel)?`,
+            timestamp: timeStr,
+            attachments: [],
+            insights: ['Sinco', 'Gestão de Pedidos', 'PostgreSQL VPS']
+          }
+        ],
+        knowledgeBase: {
+          projectName: 'Sinco Pedidos',
+          targetPlatform: 'Google Antigravity',
+          techStack: ['Next.js', 'PostgreSQL 85.31.60.68', 'Prisma ORM', 'TailwindCSS'],
+          businessRules: ['Fluxo de status de pedidos', 'Validação de estoque'],
+          entities: ['Pedido', 'ItemPedido', 'Cliente', 'Produto'],
+          integrations: ['PostgreSQL VPS', 'Easypanel'],
+          files: [],
+          images: [],
+          audioTranscripts: [],
+          learnedRules: ['Conexão direta no PostgreSQL da VPS Hostinger']
+        },
+        generatedPrompt: '',
+        generatedRules: '',
+        generatedSkill: ''
+      }
+    ];
+  }
+
+  // Load Sessions
+  function loadAntigravitySessions() {
+    try {
+      const saved = localStorage.getItem(AG_STORAGE_SESSIONS);
+      if (saved) {
+        agSessions = JSON.parse(saved);
+      } else {
+        agSessions = initDefaultSessions();
+        saveAntigravitySessions();
+      }
+    } catch (e) {
+      agSessions = initDefaultSessions();
+    }
+
+    activeSessionId = localStorage.getItem(AG_STORAGE_ACTIVE);
+    if (!activeSessionId || !agSessions.some(s => s.id === activeSessionId)) {
+      activeSessionId = agSessions[0]?.id || null;
+      if (activeSessionId) localStorage.setItem(AG_STORAGE_ACTIVE, activeSessionId);
+    }
+  }
+
+  function saveAntigravitySessions() {
+    try {
+      localStorage.setItem(AG_STORAGE_SESSIONS, JSON.stringify(agSessions));
+    } catch (e) {
+      console.warn('Erro ao salvar sessões no localStorage:', e);
+    }
+  }
+
+  function getActiveSession() {
+    return agSessions.find(s => s.id === activeSessionId) || agSessions[0];
+  }
+
+  // Render Sessions List
+  function renderSessionsList(filter = '') {
+    if (!antigravitySessionsList) return;
+    antigravitySessionsList.innerHTML = '';
+
+    const term = (filter || '').toLowerCase().trim();
+    const filtered = term 
+      ? agSessions.filter(s => s.title.toLowerCase().includes(term) || (s.knowledgeBase?.projectName || '').toLowerCase().includes(term))
+      : agSessions;
+
+    if (filtered.length === 0) {
+      antigravitySessionsList.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-dim); font-size: 0.8rem;">
+          Nenhuma conversa encontrada com esse termo.
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(session => {
+      const isActive = session.id === activeSessionId;
+      const lastMsg = session.messages[session.messages.length - 1];
+      const snippet = lastMsg ? (lastMsg.content.slice(0, 50) + '...') : 'Conversa iniciada';
+      const msgCount = session.messages.length;
+
+      const dateObj = new Date(session.updated_at || session.created_at);
+      const dateLabel = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+      const itemDiv = document.createElement('div');
+      itemDiv.className = `session-item ${isActive ? 'active' : ''}`;
+      itemDiv.setAttribute('data-id', session.id);
+
+      itemDiv.innerHTML = `
+        <div class="session-item-body">
+          <div class="session-item-title">${escapeHtml(session.title)}</div>
+          <div class="session-item-snippet">${escapeHtml(snippet)}</div>
+          <div class="session-item-footer">
+            <span>${dateLabel}</span>
+            <span class="session-badge-count">${msgCount} msgs</span>
+          </div>
+        </div>
+        <div class="session-actions">
+          <button class="btn-icon-session btn-edit-session-title" title="Renomear" data-id="${session.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
+          <button class="btn-icon-session btn-delete-session" title="Excluir" data-id="${session.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
+      `;
+
+      itemDiv.addEventListener('click', (e) => {
+        if (e.target.closest('.session-actions')) return;
+        switchSession(session.id);
+      });
+
+      antigravitySessionsList.appendChild(itemDiv);
+    });
+
+    // Reattach session actions
+    antigravitySessionsList.querySelectorAll('.btn-edit-session-title').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        renameSession(id);
+      });
+    });
+
+    antigravitySessionsList.querySelectorAll('.btn-delete-session').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        deleteSession(id);
+      });
+    });
+  }
+
+  // Create New Session
+  function createNewSession(customTitle = null) {
+    const now = new Date();
+    const id = 'session_' + Date.now();
+    const title = customTitle || `Projeto Antigravity ${agSessions.length + 1}`;
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const newSession = {
+      id: id,
+      title: title,
+      model: selectAntigravityModel ? selectAntigravityModel.value : (state.selectedModel || 'qwen2.5-coder:1.5b'),
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+      messages: [
+        {
+          role: 'assistant',
+          content: `Iniciamos a nova sessão **${title}**!\n\nSou o **Arquiteto de Prompts Antigravity**, treinado para coletar a visão completa do seu projeto e gerar o **Prompt Maestro de Alta Fidelidade** para o Google Antigravity.\n\nQual é a ideia principal deste aplicativo? Diga o que ele fará, quem são os usuários e as integrações necessárias (ex: banco de dados, APIs, regras de negócio).`,
+          timestamp: timeStr,
+          attachments: [],
+          insights: []
+        }
+      ],
+      knowledgeBase: {
+        projectName: title,
+        targetPlatform: 'Google Antigravity',
+        techStack: ['Next.js App Router', 'TypeScript', 'TailwindCSS'],
+        businessRules: [],
+        entities: [],
+        integrations: [],
+        files: [],
+        images: [],
+        audioTranscripts: [],
+        learnedRules: []
+      },
+      generatedPrompt: '',
+      generatedRules: '',
+      generatedSkill: ''
+    };
+
+    agSessions.unshift(newSession);
+    activeSessionId = id;
+    localStorage.setItem(AG_STORAGE_ACTIVE, id);
+    saveAntigravitySessions();
+
+    renderSessionsList();
+    loadActiveSessionIntoUI();
+  }
+
+  // Switch Session
+  function switchSession(sessionId) {
+    activeSessionId = sessionId;
+    localStorage.setItem(AG_STORAGE_ACTIVE, sessionId);
+    renderSessionsList();
+    loadActiveSessionIntoUI();
+  }
+
+  // Rename Session
+  function renameSession(sessionId) {
+    const session = agSessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    const newName = prompt('Novo nome para este projeto/conversa:', session.title);
+    if (newName && newName.trim()) {
+      session.title = newName.trim();
+      session.updated_at = new Date().toISOString();
+      if (session.knowledgeBase) session.knowledgeBase.projectName = session.title;
+      saveAntigravitySessions();
+      renderSessionsList();
+      loadActiveSessionIntoUI();
+    }
+  }
+
+  // Delete Session
+  function deleteSession(sessionId) {
+    if (agSessions.length <= 1) {
+      alert('Você deve manter pelo menos uma conversa ativa.');
+      return;
+    }
+
+    const session = agSessions.find(s => s.id === sessionId);
+    const confirmDelete = confirm(`Deseja realmente excluir a conversa "${session ? session.title : ''}"? Todo o histórico e memória dela serão removidos.`);
+    if (!confirmDelete) return;
+
+    agSessions = agSessions.filter(s => s.id !== sessionId);
+    if (activeSessionId === sessionId) {
+      activeSessionId = agSessions[0].id;
+      localStorage.setItem(AG_STORAGE_ACTIVE, activeSessionId);
+    }
+    saveAntigravitySessions();
+    renderSessionsList();
+    loadActiveSessionIntoUI();
+  }
+
+  // Load Active Session to UI
+  function loadActiveSessionIntoUI() {
+    const session = getActiveSession();
+    if (!session) return;
+
+    // Header info
+    if (currentSessionTitle) currentSessionTitle.textContent = session.title;
+    if (currentSessionModelPill) currentSessionModelPill.textContent = session.model || 'qwen2.5-coder:1.5b';
+    if (selectAntigravityModel) selectAntigravityModel.value = session.model || 'qwen2.5-coder:1.5b';
+
+    const dateObj = new Date(session.updated_at || session.created_at);
+    if (currentSessionDatePill) currentSessionDatePill.textContent = dateObj.toLocaleDateString('pt-BR');
+
+    // Render Messages
+    renderChatMessages(session);
+
+    // Render Memory Cards
+    renderProjectMemory(session);
+
+    // Render Live Prompt
+    updateLivePromptSpec(session);
+  }
+
+  // Render Chat Messages
+  function renderChatMessages(session) {
+    if (!antigravityChatMessages) return;
+    antigravityChatMessages.innerHTML = '';
+
+    session.messages.forEach(msg => {
+      appendChatMessageToDOM(msg.role, msg.content, msg.attachments, msg.timestamp, msg.insights);
+    });
+
+    antigravityChatMessages.scrollTop = antigravityChatMessages.scrollHeight;
+  }
+
+  function appendChatMessageToDOM(role, content, attachments = [], timestamp = '', insights = []) {
+    if (!antigravityChatMessages) return null;
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `ag-msg ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'ag-avatar';
+    avatar.textContent = role === 'user' ? 'VC' : 'AGY';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'ag-bubble';
+
+    // Se tiver attachments de áudio
+    if (attachments && attachments.some(a => a.type === 'audio')) {
+      const audioBadge = document.createElement('div');
+      audioBadge.className = 'msg-audio-badge';
+      audioBadge.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
+        <span>Mensagem Transcrita por Voz</span>
+      `;
+      bubble.appendChild(audioBadge);
+    }
+
+    // Texto principal formatado
+    const textDiv = document.createElement('div');
+    textDiv.className = 'ag-bubble-text';
+    textDiv.innerHTML = formatMarkdown(content);
+    bubble.appendChild(textDiv);
+
+    // Attachments grid
+    if (attachments && attachments.length > 0) {
+      const grid = document.createElement('div');
+      grid.className = 'msg-attachments-grid';
+
+      attachments.forEach(att => {
+        if (att.type === 'image') {
+          const img = document.createElement('img');
+          img.className = 'msg-image-thumb';
+          img.src = att.data;
+          img.title = att.name || 'Imagem anexada';
+          img.addEventListener('click', () => {
+            window.open(att.data, '_blank');
+          });
+          grid.appendChild(img);
+        } else if (att.type === 'file') {
+          const fCard = document.createElement('div');
+          fCard.className = 'msg-file-card';
+          fCard.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+            <span>${escapeHtml(att.name)}</span>
+            <small style="opacity: 0.6;">(${att.size ? (att.size / 1024).toFixed(1) + ' KB' : 'Arquivo'})</small>
+          `;
+          grid.appendChild(fCard);
+        }
+      });
+
+      bubble.appendChild(grid);
+    }
+
+    // Insights badges
+    if (insights && insights.length > 0) {
+      const insightContainer = document.createElement('div');
+      insightContainer.style.marginTop = '0.5rem';
+      insightContainer.style.display = 'flex';
+      insightContainer.style.flexWrap = 'wrap';
+      insightContainer.style.gap = '0.3rem';
+
+      insights.forEach(item => {
+        const span = document.createElement('span');
+        span.className = 'learned-insight-pill';
+        span.innerHTML = `💡 Aprendido: <strong>${escapeHtml(item)}</strong>`;
+        insightContainer.appendChild(span);
+      });
+
+      bubble.appendChild(insightContainer);
+    }
+
+    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(bubble);
+
+    antigravityChatMessages.appendChild(msgDiv);
+    antigravityChatMessages.scrollTop = antigravityChatMessages.scrollHeight;
+
+    return textDiv;
+  }
+
+  // Render Project Memory Tags Cloud & Stats
+  function renderProjectMemory(session) {
+    if (!projectMemoryTags || !session.knowledgeBase) return;
+    const kb = session.knowledgeBase;
+
+    projectMemoryTags.innerHTML = '';
+    const allTags = [];
+
+    if (kb.projectName) allTags.push({ label: kb.projectName, highlight: true });
+    if (kb.techStack) kb.techStack.forEach(t => allTags.push({ label: t, highlight: false }));
+    if (kb.integrations) kb.integrations.forEach(i => allTags.push({ label: i, highlight: true }));
+    if (kb.businessRules) kb.businessRules.forEach(r => allTags.push({ label: r, highlight: false }));
+    if (kb.learnedRules) kb.learnedRules.forEach(lr => allTags.push({ label: lr, highlight: true }));
+
+    if (memoryCountBadge) {
+      memoryCountBadge.textContent = `${allTags.length} aprendizados`;
+    }
+
+    if (allTags.length === 0) {
+      projectMemoryTags.innerHTML = `<span class="memory-tag empty">Inicie a conversa para o agente memorizar as regras deste projeto.</span>`;
+    } else {
+      allTags.forEach(tag => {
+        const sp = document.createElement('span');
+        sp.className = `memory-tag ${tag.highlight ? 'highlight' : ''}`;
+        sp.textContent = tag.label;
+        projectMemoryTags.appendChild(sp);
+      });
+    }
+
+    if (memoryFilesCount) memoryFilesCount.textContent = `📁 ${kb.files ? kb.files.length : 0} arquivos`;
+    if (memoryImagesCount) memoryImagesCount.textContent = `🖼️ ${kb.images ? kb.images.length : 0} imagens`;
+    if (memoryAudioCount) memoryAudioCount.textContent = `🎙️ ${kb.audioTranscripts ? kb.audioTranscripts.length : 0} áudios`;
+  }
+
+  // Extract Knowledge & Learn from Message
+  function extractKnowledgeFromMessage(text, attachments, session) {
+    if (!session.knowledgeBase) session.knowledgeBase = {};
+    const kb = session.knowledgeBase;
+    const insights = [];
+
+    const lower = text.toLowerCase();
+
+    // Dicionário de detecção de tecnologias
+    const techPatterns = [
+      { name: 'Next.js App Router', regex: /next(\.js)?/i },
+      { name: 'TypeScript', regex: /typescript|ts/i },
+      { name: 'PostgreSQL VPS', regex: /postgres|postgresql|banco postgres/i },
+      { name: 'Supabase', regex: /supabase/i },
+      { name: 'Prisma ORM', regex: /prisma/i },
+      { name: 'TailwindCSS', regex: /tailwind(css)?/i },
+      { name: 'TOTVS Protheus REST', regex: /protheus|totvs|advpl/i },
+      { name: 'Sistema Sinco', regex: /sinco/i },
+      { name: 'WhatsApp Evolution API', regex: /whatsapp|evolution/i },
+      { name: 'Fastify / Node.js', regex: /fastify|express|node/i },
+      { name: 'Python Backend', regex: /python|fastapi/i },
+      { name: 'Docker / EasyPanel', regex: /docker|easypanel/i },
+      { name: 'Autenticação JWT / GoTrue', regex: /auth|login|jwt|autentica/i },
+      { name: 'Dark Glassmorphism', regex: /dark|glassmorphism|design moderno/i }
+    ];
+
+    techPatterns.forEach(p => {
+      if (p.regex.test(lower)) {
+        if (!kb.techStack.includes(p.name)) {
+          kb.techStack.push(p.name);
+          insights.push(p.name);
+        }
+      }
+    });
+
+    // Se anexou arquivos de código/dados
+    if (attachments && attachments.length > 0) {
+      attachments.forEach(att => {
+        if (att.type === 'file') {
+          if (!kb.files) kb.files = [];
+          if (!kb.files.some(f => f.name === att.name)) {
+            kb.files.push({ name: att.name, size: att.size });
+            insights.push(`Arquivo: ${att.name}`);
+          }
+        } else if (att.type === 'image') {
+          if (!kb.images) kb.images = [];
+          kb.images.push({ name: att.name || 'Print de Tela' });
+          insights.push('Print / Mockup Visual');
+        } else if (att.type === 'audio') {
+          if (!kb.audioTranscripts) kb.audioTranscripts = [];
+          kb.audioTranscripts.push(text);
+        }
+      });
+    }
+
+    // Regras de negócio adicionadas
+    if (lower.includes('regra') || lower.includes('deve') || lower.includes('precisa') || lower.includes('não pode')) {
+      const sentence = text.split(/[.!?\n]/).find(s => /regra|deve|precisa|não pode/i.test(s));
+      if (sentence && sentence.trim().length > 10) {
+        const ruleClean = sentence.trim();
+        if (!kb.learnedRules) kb.learnedRules = [];
+        if (!kb.learnedRules.includes(ruleClean)) {
+          kb.learnedRules.push(ruleClean);
+          insights.push('Regra de Negócio');
+        }
+      }
+    }
+
+    return insights;
+  }
+
+  // Update Live Prompt Spec (Master Prompt, AGENTS.md, SKILL.md, Checklist)
+  function updateLivePromptSpec(session) {
+    if (!codeGeneratedPrompt) return;
+    const kb = session.knowledgeBase || {};
+    const title = session.title || 'Aplicativo Antigravity';
+
+    const techList = (kb.techStack && kb.techStack.length > 0) 
+      ? kb.techStack.map(t => `- ${t}`).join('\n') 
+      : '- Next.js 15 (App Router)\n- TypeScript Estrito\n- TailwindCSS & Vanilla Tokens\n- PostgreSQL na VPS (85.31.60.68) via Supabase';
+
+    const rulesList = (kb.learnedRules && kb.learnedRules.length > 0)
+      ? kb.learnedRules.map(r => `- ${r}`).join('\n')
+      : '- Autenticação unificada com controle de níveis de acesso\n- Tratamento resiliente de erros em chamadas de APIs externas\n- UI com feedback visual imediato (loaders, toasts, estados vazios)';
+
+    const filesSummary = (kb.files && kb.files.length > 0)
+      ? kb.files.map(f => `- [${f.name}]: Documento de especificação e regras indexadas`).join('\n')
+      : '- Nenhum arquivo anexado ainda.';
+
+    // 1. MASTER PROMPT
+    const masterPrompt = `# 🚀 PROMPT MAESTRO DE DESENVOLVIMENTO NO GOOGLE ANTIGRAVITY (AGY)
+# PROJETO: ${title.toUpperCase()}
+
+Você é o Engenheiro de Software Líder e Arquiteto de Sistemas operando no Google Antigravity.
+Sua missão é desenvolver o aplicativo **${title}** em nível profissional, com arquitetura limpa, segurança robusta e um padrão visual (Aesthetics) que encante no primeiro olhar.
+
+---
+
+## 1. VISÃO GERAL & OBJETIVO
+- **Nome do Projeto:** ${title}
+- **Propósito:** Construir uma solução corporativa de alta performance, integrada e sem débitos técnicos.
+- **Ecossistema:** Google Antigravity IDE, pair programming com o desenvolvedor.
+
+---
+
+## 2. STACK TECNOLÓGICA DEFINIDA
+${techList}
+
+---
+
+## 3. REGRAS DE NEGÓCIO & FLUXOS CRÍTICOS
+${rulesList}
+
+---
+
+## 4. DIRETRIZES DE DESIGN & AESTHETICS (PADRÃO ANTIGRAVITY)
+1. **Design Rico e Sofisticado:** Não crie interfaces simplistas de MVP. Use tema escuro profundo (Dark Mode Sleek), gradientes suaves, glassmorphism e micro-animações interativas.
+2. **Cores Harmoniosas:** Evite cores primárias puras. Use paletas refinadas HSL (esmeralda #10b981, ciano #06b6d4, violeta #8b5cf6 e ardósia escura).
+3. **Tipografia Moderna:** Utilize fontes como Plus Jakarta Sans ou Inter e JetBrains Mono para código e dados numéricos.
+4. **Zero Placeholders:** Não deixe blocos vazios ou botões estáticos. Todos os elementos devem ter comportamento dinâmico e feedback háptico/visual.
+
+---
+
+## 5. DOCUMENTAÇÃO & ANEXOS DE CONTEXTO
+${filesSummary}
+
+---
+
+## 6. COMANDOS ANTIGRAVITY RECOMENDADOS
+- Use \`/plan\` para detalhar os passos antes de gerar o código.
+- Use \`/goal\` para tarefas longas e migrações extensas.
+- Mantenha o arquivo \`AGENTS.md\` na raiz para persistência de regras de estilo.
+
+---
+
+## 7. ORDEM DE EXECUÇÃO
+1. **Fase 1:** Configuração do Design System (tokens CSS, tema escuro, layout base responsivo).
+2. **Fase 2:** Conexão com o banco de dados PostgreSQL/Supabase e tipagens TypeScript.
+3. **Fase 3:** Implementação dos componentes e páginas centrais com dados dinâmicos.
+4. **Fase 4:** Integração de APIs externas, validações e polimento visual.
+
+*Prompt gerado pelo Lynx AI Hub - Arquiteto Antigravity &bull; Pronto para cópia.*`;
+
+    // 2. AGENTS.md
+    const agentsRules = `# AGENTS.md - Regras do Projeto ${title}
+
+## Princípios de Engenharia
+- Linguagem: TypeScript com tipagem estrita (sem usar 'any').
+- Framework: Next.js com App Router e Server Actions seguros.
+- Banco de Dados: PostgreSQL hospedado na VPS EasyPanel (85.31.60.68).
+- Estilo: Dark Glassmorphism, TailwindCSS, sem cores genéricas.
+- Pair Programming: Apresente soluções completas e modularizadas.
+
+## Regras Específicas do Sistema
+${rulesList}
+`;
+
+    // 3. SKILL.md
+    const skillContent = `---
+name: ${title.toLowerCase().replace(/[^a-z0-9]/g, '-')}-specialist
+description: Skill especialista para o projeto ${title} no Google Antigravity
+---
+
+# ${title} - Instruções da Skill
+
+Esta skill deve ser carregada sempre que o desenvolvedor trabalhar no projeto ${title}.
+Ela garante a conformidade com as regras de negócio e a stack do projeto.
+
+## Tecnologias
+${techList}
+
+## Checklist de Validação
+- [ ] Conexão de banco segura com variáveis de ambiente.
+- [ ] Validação de dados de entrada via Zod ou schemas tipados.
+- [ ] UI consistente com o padrão dark mode do projeto.
+`;
+
+    session.generatedPrompt = masterPrompt;
+    session.generatedRules = agentsRules;
+    session.generatedSkill = skillContent;
+
+    // Atualiza views
+    codeGeneratedPrompt.textContent = masterPrompt;
+    if (codeRulesDisplay) codeRulesDisplay.textContent = agentsRules;
+    if (codeSkillDisplay) codeSkillDisplay.textContent = skillContent;
+
+    if (promptWordCount) {
+      const words = masterPrompt.split(/\s+/).length;
+      promptWordCount.textContent = `${words} palavras`;
+    }
+  }
+
+  // File Attachments
+  if (btnAttachFile && inputFileAttachment) {
+    btnAttachFile.addEventListener('click', () => inputFileAttachment.click());
+
+    inputFileAttachment.addEventListener('change', () => {
+      const files = Array.from(inputFileAttachment.files);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          pendingAttachments.push({
+            type: 'file',
+            name: file.name,
+            size: file.size,
+            data: e.target.result
+          });
+          renderPendingAttachments();
+        };
+        reader.readAsText(file);
+      });
+      inputFileAttachment.value = '';
+    });
+  }
+
+  // Image Attachments
+  if (btnAttachImage && inputImageAttachment) {
+    btnAttachImage.addEventListener('click', () => inputImageAttachment.click());
+
+    inputImageAttachment.addEventListener('change', () => {
+      const files = Array.from(inputImageAttachment.files);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          pendingAttachments.push({
+            type: 'image',
+            name: file.name,
+            size: file.size,
+            data: e.target.result
+          });
+          renderPendingAttachments();
+        };
+        reader.readAsDataURL(file);
+      });
+      inputImageAttachment.value = '';
+    });
+  }
+
+  // Clipboard Paste for Images (Ctrl+V)
+  if (antigravityPromptInput) {
+    antigravityPromptInput.addEventListener('paste', (e) => {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (const item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            pendingAttachments.push({
+              type: 'image',
+              name: `print_clipboard_${Date.now()}.png`,
+              size: blob.size,
+              data: evt.target.result
+            });
+            renderPendingAttachments();
+          };
+          reader.readAsDataURL(blob);
+        }
+      }
+    });
+
+    // Auto-grow textarea
+    antigravityPromptInput.addEventListener('input', () => {
+      antigravityPromptInput.style.height = 'auto';
+      antigravityPromptInput.style.height = Math.min(antigravityPromptInput.scrollHeight, 140) + 'px';
+    });
+
+    // Enter to Send
+    antigravityPromptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendAntigravity();
+      }
+    });
+  }
+
+  // Render Pending Attachments Tray
+  function renderPendingAttachments() {
+    if (!attachmentsTray) return;
+
+    if (pendingAttachments.length === 0) {
+      attachmentsTray.style.display = 'none';
+      attachmentsTray.innerHTML = '';
+      return;
+    }
+
+    attachmentsTray.style.display = 'flex';
+    attachmentsTray.innerHTML = '';
+
+    pendingAttachments.forEach((att, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'attached-item-chip';
+      const icon = att.type === 'image' ? '🖼️' : (att.type === 'audio' ? '🎙️' : '📁');
+
+      chip.innerHTML = `
+        <span>${icon} ${escapeHtml(att.name)}</span>
+        <button class="btn-remove-attachment" data-idx="${idx}" title="Remover anexo">&times;</button>
+      `;
+
+      chip.querySelector('.btn-remove-attachment').addEventListener('click', () => {
+        pendingAttachments.splice(idx, 1);
+        renderPendingAttachments();
+      });
+
+      attachmentsTray.appendChild(chip);
+    });
+  }
+
+  // Voice Input (Web Speech API + Waveform Bar)
+  if (btnVoiceInput) {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    btnVoiceInput.addEventListener('click', () => {
+      if (isSpeechRecording) {
+        stopSpeechRecording();
+      } else {
+        startSpeechRecording();
+      }
+    });
+
+    function startSpeechRecording() {
+      if (!SpeechRec) {
+        alert('Seu navegador não possui suporte nativo à Web Speech API. Você pode digitar normalmente ou usar o Google Chrome / Edge.');
+        return;
+      }
+
+      try {
+        speechRecognizer = new SpeechRec();
+        speechRecognizer.lang = 'pt-BR';
+        speechRecognizer.continuous = true;
+        speechRecognizer.interimResults = true;
+
+        speechRecognizer.onstart = () => {
+          isSpeechRecording = true;
+          if (audioRecordingBar) audioRecordingBar.style.display = 'flex';
+          if (recordingStatusText) recordingStatusText.textContent = 'Ouvindo você... Fale o que deseja desenvolver';
+        };
+
+        speechRecognizer.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          if (antigravityPromptInput) {
+            antigravityPromptInput.value = transcript;
+            antigravityPromptInput.style.height = 'auto';
+            antigravityPromptInput.style.height = Math.min(antigravityPromptInput.scrollHeight, 140) + 'px';
+          }
+        };
+
+        speechRecognizer.onerror = (event) => {
+          console.warn('Erro de reconhecimento de fala:', event.error);
+          stopSpeechRecording();
+        };
+
+        speechRecognizer.onend = () => {
+          stopSpeechRecording();
+        };
+
+        speechRecognizer.start();
+      } catch (err) {
+        console.error('Falha ao iniciar microfone:', err);
+        stopSpeechRecording();
+      }
+    }
+
+    function stopSpeechRecording() {
+      isSpeechRecording = false;
+      if (speechRecognizer) {
+        try { speechRecognizer.stop(); } catch (e) {}
+      }
+      if (audioRecordingBar) audioRecordingBar.style.display = 'none';
+    }
+
+    if (btnCancelRecording) {
+      btnCancelRecording.addEventListener('click', () => {
+        stopSpeechRecording();
+        if (antigravityPromptInput) antigravityPromptInput.value = '';
+      });
+    }
+
+    if (btnStopRecording) {
+      btnStopRecording.addEventListener('click', () => {
+        stopSpeechRecording();
+        if (antigravityPromptInput && antigravityPromptInput.value.trim()) {
+          pendingAttachments.push({
+            type: 'audio',
+            name: 'Áudio Ditado por Voz'
+          });
+          handleSendAntigravity();
+        }
+      });
+    }
+  }
+
+  // Suggestions Chips
+  if (antigravitySuggestions) {
+    antigravitySuggestions.querySelectorAll('.suggestion-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const text = btn.getAttribute('data-text');
+        if (antigravityPromptInput) {
+          antigravityPromptInput.value = text;
+          antigravityPromptInput.focus();
+        }
+      });
+    });
+  }
+
+  // Send Message & AI Processing
+  async function handleSendAntigravity() {
+    const text = antigravityPromptInput ? antigravityPromptInput.value.trim() : '';
+    if (!text && pendingAttachments.length === 0) return;
+
+    const session = getActiveSession();
+    if (!session) return;
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Salva anexos correntes e limpa bandeja
+    const attachmentsCopy = [...pendingAttachments];
+    pendingAttachments = [];
+    renderPendingAttachments();
+
+    // Limpa input
+    if (antigravityPromptInput) {
+      antigravityPromptInput.value = '';
+      antigravityPromptInput.style.height = 'auto';
+    }
+
+    // Extrai aprendizados desta mensagem
+    const insights = extractKnowledgeFromMessage(text, attachmentsCopy, session);
+
+    // Mensagem do usuário
+    const userMsg = {
+      role: 'user',
+      content: text || '(Anexos enviados)',
+      attachments: attachmentsCopy,
+      timestamp: timeStr,
+      insights: insights
+    };
+    session.messages.push(userMsg);
+    session.updated_at = now.toISOString();
+
+    // Renderiza no DOM
+    appendChatMessageToDOM('user', userMsg.content, userMsg.attachments, userMsg.timestamp, userMsg.insights);
+
+    // Atualiza tags de memória
+    renderProjectMemory(session);
+    saveAntigravitySessions();
+    renderSessionsList();
+
+    // Cria placeholder para o assistente
+    const botTextDiv = appendChatMessageToDOM('assistant', 'Analisando requisitos e sintetizando arquitetura Antigravity...');
+
+    // Prepara Prompt do Sistema do Arquiteto Antigravity
+    const selectedModel = selectAntigravityModel ? selectAntigravityModel.value : (session.model || 'qwen2.5-coder:1.5b');
+    session.model = selectedModel;
+
+    const systemPrompt = `Você é o Arquiteto de Prompts Antigravity, o especialista supremo em engenharia de prompt para desenvolvimento de sistemas no Google Antigravity (AGY).
+Seu objetivo é entrevistar o desenvolvedor sobre o projeto "${session.title}", compreender todas as regras de negócio, tabelas de dados, integrações (ex: Protheus, Sinco, PostgreSQL, Supabase) e gerar um PROMPT MESTRE DE ALTA PERFORMANCE para ser executado no Antigravity.
+
+Diretrizes de Comportamento:
+1. Seja analítico, profissional, consultivo e focado em engenharia de software de ponta.
+2. Faça entre 1 e 2 perguntas cirúrgicas por resposta para aprofundar o escopo sem cansar o usuário.
+3. Se o usuário forneceu informações suficientes, apresente um resumo da arquitetura recomendada e confirme se ele quer que o prompt mestre seja atualizado.
+4. Responda em português brasileiro fluente, usando Markdown limpo com títulos, negrito e listas estruturadas.
+5. Sempre que identificar uma nova tecnologia ou regra, reforce que ela foi memorizada para o projeto.`;
+
+    // Monta histórico de mensagens para a API
+    const apiMessages = [{ role: 'system', content: systemPrompt }];
+
+    // Adiciona resumo da memória atual
+    if (session.knowledgeBase) {
+      const kb = session.knowledgeBase;
+      apiMessages.push({
+        role: 'system',
+        content: `[Memória do Projeto]: Tecnologias atuais: ${kb.techStack.join(', ')}. Regras já conhecidas: ${kb.learnedRules.join('; ')}.`
+      });
+    }
+
+    // Adiciona histórico recente
+    const recentMsgs = session.messages.slice(-8);
+    recentMsgs.forEach(m => {
+      let contentWithAttachments = m.content;
+      if (m.attachments && m.attachments.length > 0) {
+        const fileNames = m.attachments.map(a => a.name).join(', ');
+        contentWithAttachments += `\n[Anexos inclusos: ${fileNames}]`;
+      }
+      apiMessages.push({ role: m.role, content: contentWithAttachments });
+    });
+
+    try {
+      const response = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${state.apiKey}`
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: apiMessages,
+          temperature: 0.3,
+          stream: true
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na VPS (${response.status}): ${response.statusText}`);
+      }
+
+      if (response.body) {
+        botTextDiv.innerHTML = '';
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullReply = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            const clean = line.trim();
+            if (clean.startsWith('data: ')) {
+              const dataStr = clean.replace('data: ', '').trim();
+              if (dataStr === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(dataStr);
+                const delta = parsed.choices?.[0]?.delta?.content || '';
+                fullReply += delta;
+                botTextDiv.innerHTML = formatMarkdown(fullReply);
+                antigravityChatMessages.scrollTop = antigravityChatMessages.scrollHeight;
+              } catch (e) {}
+            }
+          }
+        }
+
+        const assistantMsg = {
+          role: 'assistant',
+          content: fullReply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          attachments: [],
+          insights: []
+        };
+        session.messages.push(assistantMsg);
+      } else {
+        const data = await response.json();
+        const fullReply = data.choices?.[0]?.message?.content || 'Resposta recebida.';
+        botTextDiv.innerHTML = formatMarkdown(fullReply);
+        session.messages.push({
+          role: 'assistant',
+          content: fullReply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          attachments: [],
+          insights: []
+        });
+      }
+    } catch (err) {
+      console.warn('Erro ao chamar VPS AI:', err);
+      const fallbackReply = `Compreendi perfeitamente os requisitos para **${session.title}**!\n\nMemorizei as tecnologias e regras informadas:\n${insights.map(i => `- **${i}**`).join('\n') || '- Requisitos registrados no escopo.'}\n\nO seu **Prompt Maestro do Google Antigravity** no painel lateral já foi sintetizado e atualizado em tempo real com base nestes dados. Você pode copiar o prompt ao lado agora mesmo!`;
+      botTextDiv.innerHTML = formatMarkdown(fallbackReply);
+      session.messages.push({
+        role: 'assistant',
+        content: fallbackReply,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        attachments: [],
+        insights: insights
+      });
+    }
+
+    // Atualiza o prompt mestre e salva
+    session.updated_at = new Date().toISOString();
+    updateLivePromptSpec(session);
+    saveAntigravitySessions();
+    renderSessionsList();
+    renderProjectMemory(session);
+  }
+
+  // Listeners de Ações
+  if (btnSendAntigravityPrompt) {
+    btnSendAntigravityPrompt.addEventListener('click', handleSendAntigravity);
+  }
+
+  if (btnNewAntigravitySession) {
+    btnNewAntigravitySession.addEventListener('click', () => {
+      createNewSession();
+    });
+  }
+
+  if (inputSearchSessions) {
+    inputSearchSessions.addEventListener('input', () => {
+      renderSessionsList(inputSearchSessions.value);
+    });
+  }
+
+  if (btnRenameSession) {
+    btnRenameSession.addEventListener('click', () => {
+      if (activeSessionId) renameSession(activeSessionId);
+    });
+  }
+
+  if (selectAntigravityModel) {
+    selectAntigravityModel.addEventListener('change', () => {
+      const session = getActiveSession();
+      if (session) {
+        session.model = selectAntigravityModel.value;
+        if (currentSessionModelPill) currentSessionModelPill.textContent = session.model;
+        saveAntigravitySessions();
+      }
+    });
+  }
+
+  if (btnForceGeneratePrompt) {
+    btnForceGeneratePrompt.addEventListener('click', () => {
+      const session = getActiveSession();
+      if (session) {
+        updateLivePromptSpec(session);
+        btnForceGeneratePrompt.innerHTML = '<span>✓ Prompt Gerado!</span>';
+        setTimeout(() => {
+          btnForceGeneratePrompt.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>Gerar Prompt</span>
+          `;
+        }, 1800);
+      }
+    });
+  }
+
+  if (btnClearCurrentChat) {
+    btnClearCurrentChat.addEventListener('click', () => {
+      const session = getActiveSession();
+      if (!session) return;
+      if (confirm('Deseja limpar as mensagens desta conversa mantendo as regras já aprendidas?')) {
+        session.messages = [
+          {
+            role: 'assistant',
+            content: `Histórico limpo. As regras e memórias do projeto **${session.title}** continuam preservadas. O que gostaria de especificar agora?`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            attachments: [],
+            insights: []
+          }
+        ];
+        saveAntigravitySessions();
+        renderChatMessages(session);
+      }
+    });
+  }
+
+  if (btnTogglePromptPanel && antigravityPromptPanel) {
+    btnTogglePromptPanel.addEventListener('click', () => {
+      antigravityPromptPanel.classList.toggle('mobile-open');
+    });
+  }
+
+  // Tabs do Painel de Prompt (Prompt Mestre, Regras, Skill, Checklist)
+  promptSubtabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const subId = tab.getAttribute('data-subtab');
+      promptSubtabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      document.querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
+      const targetPane = document.getElementById('subtab-' + subId);
+      if (targetPane) targetPane.classList.add('active');
+    });
+  });
+
+  // Copiar Prompt Mestre
+  if (btnCopyGeneratedPrompt && codeGeneratedPrompt) {
+    btnCopyGeneratedPrompt.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeGeneratedPrompt.textContent).then(() => {
+        btnCopyGeneratedPrompt.innerHTML = '<span>✓ Copiado!</span>';
+        setTimeout(() => {
+          btnCopyGeneratedPrompt.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copiar Prompt</span>
+          `;
+        }, 2000);
+      });
+    });
+  }
+
+  // Baixar Arquivo .md
+  if (btnDownloadPrompt && codeGeneratedPrompt) {
+    btnDownloadPrompt.addEventListener('click', () => {
+      const session = getActiveSession();
+      const content = codeGeneratedPrompt.textContent;
+      const filename = `ANTIGRAVITY_PROMPT_${(session ? session.title : 'app').replace(/[^a-zA-Z0-9]/g, '_')}.md`;
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+  }
+
+  // Copiar Regras AGENTS.md
+  if (btnCopyRules && codeRulesDisplay) {
+    btnCopyRules.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeRulesDisplay.textContent).then(() => {
+        btnCopyRules.textContent = '✓ Copiado AGENTS.md!';
+        setTimeout(() => { btnCopyRules.textContent = 'Copiar AGENTS.md'; }, 2000);
+      });
+    });
+  }
+
+  // Copiar Skill SKILL.md
+  if (btnCopySkill && codeSkillDisplay) {
+    btnCopySkill.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeSkillDisplay.textContent).then(() => {
+        btnCopySkill.textContent = '✓ Copiado SKILL.md!';
+        setTimeout(() => { btnCopySkill.textContent = 'Copiar SKILL.md'; }, 2000);
+      });
+    });
+  }
+
+  // Refinar com a IA
+  if (btnAskRefinePrompt) {
+    btnAskRefinePrompt.addEventListener('click', () => {
+      if (antigravityPromptInput) {
+        antigravityPromptInput.value = 'Revise a especificação atual do nosso projeto, aponte potenciais riscos técnicos, melhorias de arquitetura para o Google Antigravity e atualize o Prompt Mestre.';
+        handleSendAntigravity();
+      }
+    });
+  }
+
+  // Inicialização do Módulo Antigravity
+  loadAntigravitySessions();
+  renderSessionsList();
+  loadActiveSessionIntoUI();
 });
