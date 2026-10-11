@@ -25,7 +25,18 @@ if sys.platform.startswith("win"):
     except Exception:
         pass
 
-PORT = 8085
+# Suporte a porta customizada via variável de ambiente PORT ou argumento de linha de comando (ex: python server.py 8086 ou --port=8086)
+PORT = int(os.environ.get("PORT", 8085))
+for arg in sys.argv[1:]:
+    if arg.isdigit():
+        PORT = int(arg)
+        break
+    elif arg.startswith("--port="):
+        try:
+            PORT = int(arg.split("=")[1])
+            break
+        except ValueError:
+            pass
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KEYS_FILE = os.path.join(BASE_DIR, "keys.json")
 

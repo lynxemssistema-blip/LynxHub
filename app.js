@@ -409,6 +409,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const allRecommended = [
       {
+        id: 'llama3:latest',
+        title: 'Llama 3 Conversacional (8B)',
+        author: 'Meta AI',
+        tag: 'tag-chat',
+        tagText: 'Conversação & Diálogo Humano',
+        ram: '~5.5 GB RAM',
+        desc: 'Excelente para diálogo natural, mentoria, acolhimento e suporte ao cliente em português. Respostas empáticas e altamente contextualizadas.',
+        installed: installedModels.includes('llama3:latest')
+      },
+      {
+        id: 'fooocus-sdxl',
+        title: 'Fooocus / Stable Diffusion (Imagens)',
+        author: 'Stability AI & Fooocus',
+        tag: 'tag-image',
+        tagText: 'Geração de Imagens (32GB RAM)',
+        ram: '~8.0 GB RAM',
+        desc: 'Gera imagens e ilustrações fotorrealistas em alta resolução a partir de texto (estilo Midjourney, 100% privado e ilimitado). Roda via Docker no EasyPanel na mesma VPS sem custo adicional.',
+        installed: false,
+        command: 'docker run -d --name fooocus -p 7860:7860 mrdrache333/fooocus:latest'
+      },
+      {
+        id: 'llava:7b',
+        title: 'LLaVA (7B) - Visão & Imagens',
+        author: 'Microsoft & Haotian Liu',
+        tag: 'tag-vision',
+        tagText: 'Visão Multimodal (Lê Imagens)',
+        ram: '~4.7 GB RAM',
+        desc: 'Capaz de "enxergar" e analisar imagens: envie fotos, recibos, diagramas ou capturas de tela e ele descreve e extrai detalhes em texto.',
+        installed: installedModels.includes('llava:7b')
+      },
+      {
         id: 'qwen2.5-coder:1.5b',
         title: 'Qwen 2.5 Coder (1.5B)',
         author: 'Alibaba Cloud',
@@ -419,14 +450,24 @@ document.addEventListener('DOMContentLoaded', () => {
         installed: installedModels.includes('qwen2.5-coder:1.5b')
       },
       {
-        id: 'llama3:latest',
-        title: 'Llama 3 (8B)',
+        id: 'deepseek-r1:7b',
+        title: 'DeepSeek R1 Distill (7B)',
+        author: 'DeepSeek AI',
+        tag: 'tag-reasoning',
+        tagText: 'Raciocínio Passo a Passo',
+        ram: '~5.8 GB RAM',
+        desc: 'Raciocínio profundo estilo o1. Resolve problemas lógicos difíceis e explica o pensamento passo a passo.',
+        installed: installedModels.includes('deepseek-r1:7b')
+      },
+      {
+        id: 'llama3.2:3b',
+        title: 'Llama 3.2 (3B)',
         author: 'Meta AI',
-        tag: 'tag-general',
-        tagText: 'Geral & Raciocínio',
-        ram: '~5.5 GB RAM',
-        desc: 'Modelo de grande porte instalado na sua VPS. Excelente para conversas ricas, análises de texto e respostas complexas.',
-        installed: installedModels.includes('llama3:latest')
+        tag: 'tag-speed',
+        tagText: 'Velocidade Extrema / WhatsApp',
+        ram: '~2.2 GB RAM',
+        desc: 'O mais novo modelo ultraleve da Meta. Ideal para respostas em menos de 1 segundo para WhatsApp.',
+        installed: installedModels.includes('llama3.2:3b')
       },
       {
         id: 'codegemma:latest',
@@ -447,32 +488,13 @@ document.addEventListener('DOMContentLoaded', () => {
         ram: '~6.0 GB RAM',
         desc: 'Modelo moderno do Google com alta pontuação em benchmarks de conhecimento geral e lógica.',
         installed: installedModels.includes('gemma2:latest')
-      },
-      {
-        id: 'llama3.2:3b',
-        title: 'Llama 3.2 (3B)',
-        author: 'Meta AI',
-        tag: 'tag-speed',
-        tagText: 'Velocidade Extrema / WhatsApp',
-        ram: '~2.2 GB RAM',
-        desc: 'O mais novo modelo ultraleve da Meta. Ideal para respostas em menos de 1 segundo para WhatsApp.',
-        installed: installedModels.includes('llama3.2:3b')
-      },
-      {
-        id: 'deepseek-r1:7b',
-        title: 'DeepSeek R1 Distill (7B)',
-        author: 'DeepSeek AI',
-        tag: 'tag-reasoning',
-        tagText: 'Raciocínio Passo a Passo',
-        ram: '~5.8 GB RAM',
-        desc: 'Raciocínio profundo estilo o1. Resolve problemas lógicos difíceis e explica o pensamento passo a passo.',
-        installed: installedModels.includes('deepseek-r1:7b')
       }
     ];
 
     allRecommended.forEach(m => {
       const card = document.createElement('div');
       card.className = 'model-card';
+      const cmdText = m.command || `docker exec -it $(docker ps -qf "name=ollama" | head -n 1) ollama run ${m.id}`;
       card.innerHTML = `
         <div class="model-card-header">
           <div>
@@ -488,8 +510,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <span>Custo: <strong>R$ 0,00</strong></span>
         </div>
         <div class="install-box">
-          <code>docker exec -it $(docker ps -qf "name=ollama" | head -n 1) ollama run ${m.id}</code>
-          <button class="btn-copy-sm" data-cmd="docker exec -it $(docker ps -qf \"name=ollama\" | head -n 1) ollama run ${m.id}">
+          <code>${cmdText}</code>
+          <button class="btn-copy-sm" data-cmd="${cmdText}">
             Copiar Comando
           </button>
         </div>
@@ -511,6 +533,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
     });
+
+    // Copiar Script em Massa
+    if (btnCopyBatchScript && batchScriptCode) {
+      btnCopyBatchScript.addEventListener('click', () => {
+        navigator.clipboard.writeText(batchScriptCode.textContent).then(() => {
+          btnCopyBatchScript.textContent = 'Comando Copiado!';
+          btnCopyBatchScript.classList.add('copied');
+          setTimeout(() => {
+            btnCopyBatchScript.textContent = 'Copiar Comando Completo';
+            btnCopyBatchScript.classList.remove('copied');
+          }, 2000);
+        });
+      });
+    }
   }
 
   // ==================== CONFIGURAÇÃO LOCAL ====================
@@ -891,6 +927,22 @@ Future<String> enviarParaLynxAI(String perguntaUsuario) async {
       temp: 0.1,
       systemPrompt: "Você é um motor de extração de dados estrito. Sua única saída DEVE SER UM OBJETO JSON VÁLIDO sem markdown, sem explicações, iniciando com { e terminando com }.",
       greeting: "Olá! Sou o <strong>Extrator JSON</strong>. Envie qualquer texto desestruturado para que eu devolva um JSON puro para suas APIs."
+    },
+    chat: {
+      title: "🗣️ Lynx Conversação",
+      model: "llama3:latest",
+      badge: "llama3:latest • Diálogo & Empatia",
+      temp: 0.7,
+      systemPrompt: "Você é o Lynx Conversação, um assistente inteligente, empático, acolhedor e fluente em português brasileiro. Seu objetivo é conversar naturalmente com o usuário, propor reflexões, responder com gentileza e manter diálogos fluidos e humanizados.",
+      greeting: "Olá! Sou o <strong>Lynx Conversação</strong>. Estou aqui para bater um papo, debater ideias, planejar projetos ou tirar dúvidas com total empatia. Como posso te ajudar hoje?"
+    },
+    image: {
+      title: "🎨 Lynx Designer & Imagens",
+      model: "llama3:latest",
+      badge: "llama3:latest • Engenheiro de Prompts Visuais",
+      temp: 0.8,
+      systemPrompt: "Você é o Lynx Designer, especialista em direção de arte, geração de imagens e engenharia de prompts visuais para Midjourney, Fooocus, Stable Diffusion e Flux.\nAo receber uma ideia de imagem:\n1. Descreva o conceito em português e gere o Prompt Principal em inglês (com termos cinematográficos como volumetric lighting, 8k, photorealistic, Unreal Engine 5, 85mm lens).\n2. Forneça o Prompt Negativo (para evitar defeitos anatômicos e borrões).\n3. Recomende a proporção ideal (aspect ratio ex: --ar 16:9) e iluminação.",
+      greeting: "Olá! Sou o <strong>Lynx Designer & Imagens</strong>. Descreva a cena, foto ou arte que você deseja criar e eu estruturarei o prompt profissional perfeito para o motor de imagens da sua VPS ou Midjourney!"
     },
     custom: {
       title: "✏️ Agente Personalizado",
