@@ -33,6 +33,11 @@ FILES_TO_PACKAGE = [
     "README.md"
 ]
 
+# Pastas copiadas recursivamente (ex: Biblioteca de Modelos de Prompt)
+DIRS_TO_PACKAGE = [
+    "templates"
+]
+
 def build():
     print("=" * 60)
     print("🚀 INICIANDO COMPILAÇÃO & EMPACOTAMENTO DO LYNX AI HUB")
@@ -56,6 +61,15 @@ def build():
             copied_count += 1
         else:
             print(f"   ⚠️ Aviso: Arquivo não encontrado: {filename}")
+
+    for dirname in DIRS_TO_PACKAGE:
+        src_dir = os.path.join(BASE_DIR, dirname)
+        if os.path.isdir(src_dir):
+            shutil.copytree(src_dir, os.path.join(DIST_DIR, dirname))
+            total = sum(len(f) for _, _, f in os.walk(src_dir))
+            print(f"   ✓ Copiada pasta: {dirname + '/':<15} ({total} arquivos)")
+        else:
+            print(f"   ⚠️ Aviso: Pasta não encontrada: {dirname}")
 
     # 3. Cria o arquivo ZIP pronto para upload na Hostinger
     print("\n📦 Gerando pacote ZIP para upload na Hostinger...")

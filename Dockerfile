@@ -13,6 +13,7 @@ COPY keys.json ./
 COPY index.html ./
 COPY styles.css ./
 COPY app.js ./
+COPY templates/ ./templates/
 
 # Expõe a porta do Gateway & Dashboard
 EXPOSE 8085

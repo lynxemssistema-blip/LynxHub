@@ -1975,17 +1975,24 @@ ${techList}
 - [ ] UI consistente com o padrão dark mode do projeto.
 `;
 
-    session.generatedPrompt = masterPrompt;
+    // Sessões criadas a partir de um Modelo da Biblioteca usam o prompt do modelo como Prompt Mestre
+    const finalPrompt = session.templatePrompt ? session.templatePrompt : masterPrompt;
+
+    session.generatedPrompt = finalPrompt;
     session.generatedRules = agentsRules;
     session.generatedSkill = skillContent;
 
     // Atualiza views
-    codeGeneratedPrompt.textContent = masterPrompt;
+    codeGeneratedPrompt.textContent = finalPrompt;
     if (codeRulesDisplay) codeRulesDisplay.textContent = agentsRules;
     if (codeSkillDisplay) codeSkillDisplay.textContent = skillContent;
 
+    if (promptStatusBadge) {
+      promptStatusBadge.textContent = session.templatePrompt ? `MODELO: ${session.templateTitle || 'BIBLIOTECA'}` : 'PROMPT MESTRE AO VIVO';
+    }
+
     if (promptWordCount) {
-      const words = masterPrompt.split(/\s+/).length;
+      const words = finalPrompt.split(/\s+/).length;
       promptWordCount.textContent = `${words} palavras`;
     }
   }
@@ -2529,6 +2536,214 @@ Diretrizes de Comportamento:
         antigravityPromptInput.value = 'Revise a especificação atual do nosso projeto, aponte potenciais riscos técnicos, melhorias de arquitetura para o Google Antigravity e atualize o Prompt Mestre.';
         handleSendAntigravity();
       }
+    });
+  }
+
+  // ==================== BIBLIOTECA DE MODELOS DE PROMPT ====================
+  // Para adicionar um novo modelo: crie o .md em /templates e registre-o em /templates/index.json
+  const btnOpenTemplateLibrary = document.getElementById('btnOpenTemplateLibrary');
+  const templateLibraryOverlay = document.getElementById('templateLibraryOverlay');
+  const btnCloseTemplateLibrary = document.getElementById('btnCloseTemplateLibrary');
+  const templateGrid = document.getElementById('templateGrid');
+  const templateSearchInput = document.getElementById('templateSearchInput');
+  const templateCountBadge = document.getElementById('templateCountBadge');
+  const templateListView = document.getElementById('templateListView');
+  const templatePreviewView = document.getElementById('templatePreviewView');
+  const templatePreviewTitle = document.getElementById('templatePreviewTitle');
+  const templatePreviewMeta = document.getElementById('templatePreviewMeta');
+  const templatePreviewCode = document.getElementById('templatePreviewCode');
+  const btnTemplateBack = document.getElementById('btnTemplateBack');
+  const btnTemplateCopy = document.getElementById('btnTemplateCopy');
+  const btnTemplateDownload = document.getElementById('btnTemplateDownload');
+  const btnTemplateUse = document.getElementById('btnTemplateUse');
+
+  let templateCatalog = [];
+  const templateContentCache = {};
+  let currentTemplate = null;
+
+  async function loadTemplateCatalog() {
+    if (templateCatalog.length > 0) return templateCatalog;
+    try {
+      const resp = await fetch('templates/index.json', { cache: 'no-cache' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      templateCatalog = await resp.json();
+    } catch (e) {
+      console.warn('Falha ao carregar a biblioteca de modelos:', e);
+      templateCatalog = [];
+    }
+    return templateCatalog;
+  }
+
+  async function loadTemplateContent(tpl) {
+    if (templateContentCache[tpl.id]) return templateContentCache[tpl.id];
+    const resp = await fetch(tpl.file, { cache: 'no-cache' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    templateContentCache[tpl.id] = text;
+    return text;
+  }
+
+  function renderTemplateGrid(filter = '') {
+    if (!templateGrid) return;
+    const term = filter.toLowerCase().trim();
+    const list = term
+      ? templateCatalog.filter(t => [t.title, t.description, t.category, ...(t.tags || []), ...(t.stack || [])]
+          .join(' ').toLowerCase().includes(term))
+      : templateCatalog;
+
+    if (templateCountBadge) templateCountBadge.textContent = `${templateCatalog.length} modelos`;
+
+    if (list.length === 0) {
+      templateGrid.innerHTML = `<div class="tpl-empty">${templateCatalog.length === 0
+        ? 'Não foi possível carregar a biblioteca. Abra o Hub pelo servidor (python server.py).'
+        : 'Nenhum modelo encontrado para essa busca.'}</div>`;
+      return;
+    }
+
+    templateGrid.innerHTML = list.map(t => `
+      <article class="tpl-card" style="--tpl-accent: ${escapeHtml(t.accent || '#10b981')}" data-id="${escapeHtml(t.id)}">
+        <div class="tpl-card-top">
+          <span class="tpl-icon">${t.icon || '📄'}</span>
+          <span class="tpl-category">${escapeHtml(t.category || 'Modelo')}</span>
+        </div>
+        <h4 class="tpl-title">${escapeHtml(t.title)}</h4>
+        <p class="tpl-desc">${escapeHtml(t.description || '')}</p>
+        <div class="tpl-stack">${(t.stack || []).map(s => `<span>${escapeHtml(s)}</span>`).join('')}</div>
+        <div class="tpl-card-actions">
+          <button class="tpl-btn-ghost" data-action="preview" data-id="${escapeHtml(t.id)}">Visualizar</button>
+          <button class="tpl-btn-primary" data-action="use" data-id="${escapeHtml(t.id)}">Usar no Projeto</button>
+        </div>
+      </article>
+    `).join('');
+
+    templateGrid.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const tpl = templateCatalog.find(t => t.id === btn.getAttribute('data-id'));
+        if (!tpl) return;
+        if (btn.getAttribute('data-action') === 'preview') openTemplatePreview(tpl);
+        else useTemplate(tpl);
+      });
+    });
+  }
+
+  async function openTemplatePreview(tpl) {
+    currentTemplate = tpl;
+    if (templatePreviewTitle) templatePreviewTitle.textContent = `${tpl.icon || ''} ${tpl.title}`;
+    if (templatePreviewCode) templatePreviewCode.textContent = 'Carregando modelo...';
+    if (templateListView) templateListView.hidden = true;
+    if (templatePreviewView) templatePreviewView.hidden = false;
+    try {
+      const content = await loadTemplateContent(tpl);
+      if (templatePreviewCode) templatePreviewCode.textContent = content;
+      if (templatePreviewMeta) {
+        const words = content.split(/\s+/).length;
+        templatePreviewMeta.textContent = `${tpl.category || ''} • ${words.toLocaleString('pt-BR')} palavras`;
+      }
+    } catch (e) {
+      if (templatePreviewCode) templatePreviewCode.textContent = 'Erro ao carregar o modelo: ' + e.message;
+    }
+  }
+
+  function closeTemplatePreview() {
+    currentTemplate = null;
+    if (templatePreviewView) templatePreviewView.hidden = true;
+    if (templateListView) templateListView.hidden = false;
+  }
+
+  async function useTemplate(tpl) {
+    let content;
+    try {
+      content = await loadTemplateContent(tpl);
+    } catch (e) {
+      alert('Não foi possível carregar o modelo: ' + e.message);
+      return;
+    }
+
+    createNewSession(tpl.title);
+    const session = getActiveSession();
+    if (!session) return;
+
+    session.templateId = tpl.id;
+    session.templateTitle = tpl.title;
+    session.templatePrompt = content;
+    session.knowledgeBase.techStack = tpl.stack && tpl.stack.length ? [...tpl.stack] : session.knowledgeBase.techStack;
+    session.knowledgeBase.learnedRules = [`Projeto baseado no modelo "${tpl.title}" da Biblioteca Lynx`];
+    session.messages = [{
+      role: 'assistant',
+      content: `Projeto criado a partir do modelo **${tpl.title}** ${tpl.icon || ''}\n\nO prompt completo já está no painel **Prompt Mestre** à direita — você pode copiá-lo ou baixar o .md e colar direto no Antigravity, Cursor ou Claude Code.\n\nQuer adaptar o modelo antes? Me diga, por exemplo:\n- O nome da sua empresa e o banco de dados (MySQL ou PostgreSQL)\n- Quais módulos manter ou remover\n- Integrações extras (Protheus, WhatsApp, Supabase)`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      attachments: [],
+      insights: tpl.tags || []
+    }];
+    session.updated_at = new Date().toISOString();
+    saveAntigravitySessions();
+    renderSessionsList();
+    loadActiveSessionIntoUI();
+    closeTemplateLibrary();
+  }
+
+  async function openTemplateLibrary() {
+    if (!templateLibraryOverlay) return;
+    templateLibraryOverlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    closeTemplatePreview();
+    if (templateGrid && templateCatalog.length === 0) templateGrid.innerHTML = '<div class="tpl-empty">Carregando biblioteca...</div>';
+    await loadTemplateCatalog();
+    renderTemplateGrid(templateSearchInput ? templateSearchInput.value : '');
+    if (templateSearchInput) templateSearchInput.focus();
+  }
+
+  function closeTemplateLibrary() {
+    if (!templateLibraryOverlay) return;
+    templateLibraryOverlay.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  function flashButton(btn, text) {
+    if (!btn) return;
+    const original = btn.innerHTML;
+    btn.innerHTML = `<span>${text}</span>`;
+    setTimeout(() => { btn.innerHTML = original; }, 1800);
+  }
+
+  if (btnOpenTemplateLibrary) btnOpenTemplateLibrary.addEventListener('click', openTemplateLibrary);
+  if (btnCloseTemplateLibrary) btnCloseTemplateLibrary.addEventListener('click', closeTemplateLibrary);
+  if (btnTemplateBack) btnTemplateBack.addEventListener('click', closeTemplatePreview);
+  if (templateSearchInput) templateSearchInput.addEventListener('input', () => renderTemplateGrid(templateSearchInput.value));
+  if (templateLibraryOverlay) {
+    templateLibraryOverlay.addEventListener('click', (e) => {
+      if (e.target === templateLibraryOverlay) closeTemplateLibrary();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && templateLibraryOverlay && !templateLibraryOverlay.hidden) closeTemplateLibrary();
+  });
+
+  if (btnTemplateCopy) {
+    btnTemplateCopy.addEventListener('click', async () => {
+      if (!currentTemplate) return;
+      const content = await loadTemplateContent(currentTemplate);
+      navigator.clipboard.writeText(content).then(() => flashButton(btnTemplateCopy, '✓ Copiado!'));
+    });
+  }
+
+  if (btnTemplateDownload) {
+    btnTemplateDownload.addEventListener('click', async () => {
+      if (!currentTemplate) return;
+      const content = await loadTemplateContent(currentTemplate);
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `PROMPT_${currentTemplate.id.toUpperCase().replace(/[^A-Z0-9]/g, '_')}.md`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+  }
+
+  if (btnTemplateUse) {
+    btnTemplateUse.addEventListener('click', () => {
+      if (currentTemplate) useTemplate(currentTemplate);
     });
   }
 

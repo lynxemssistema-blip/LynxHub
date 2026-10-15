@@ -1,0 +1,35 @@
+[
+  {
+    "id": "sst-completo",
+    "title": "SST Corporativo & Conformidade (NR-05, NR-06, NR-23)",
+    "icon": "🦺",
+    "category": "Saúde & Segurança do Trabalho",
+    "description": "Ecossistema completo de SST: Ficha digital de EPI com biometria facial e Kardex (NR-06), CIPA com urna eletrônica Zero-Knowledge (NR-05), Brigada de Incêndio com inspeção via QR Code (NR-23) e Cesta Básica.",
+    "stack": ["React", "Node.js / Express", "MySQL", "Tailwind CSS", "face-api.js"],
+    "tags": ["SST", "EPI", "CIPA", "Brigada", "Benefícios"],
+    "file": "templates/sst-completo.md",
+    "accent": "#d97706"
+  },
+  {
+    "id": "salas-reuniao",
+    "title": "Gestão & Reserva de Salas de Reunião",
+    "icon": "🗓️",
+    "category": "Produtividade Corporativa",
+    "description": "Reserva de salas com validação anticonflito no backend, timeline interativa estilo Outlook, cards de status em tempo real, Totem para tablet de porta (Kiosk) e folha de porta em PDF.",
+    "stack": ["React", "Node.js / Express", "MySQL", "Tailwind CSS", "jsPDF"],
+    "tags": ["Reservas", "Timeline", "Kiosk", "PDF"],
+    "file": "templates/salas-reuniao.md",
+    "accent": "#06b6d4"
+  },
+  {
+    "id": "portaria-controle-acesso",
+    "title": "Portaria & Controle de Acesso Industrial",
+    "icon": "🚧",
+    "category": "Segurança Patrimonial",
+    "description": "Guarita para tablet com check-in/check-out atômico, fotos pela webcam e atualização em tempo real via Socket.IO. Painel gerencial com KPIs do pátio, livro de passagem de turno com snapshot, escalas noturnas e exportação para Excel. Inclui 11 critérios de aceite.",
+    "stack": ["React", "Node.js / Express", "MySQL / MariaDB", "Socket.IO", "Tailwind CSS", "xlsx"],
+    "tags": ["Portaria", "Guarita", "Visitantes", "Veículos", "Turnos", "Tempo real"],
+    "file": "templates/portaria-controle-acesso.md",
+    "accent": "#10b981"
+  }
+]
